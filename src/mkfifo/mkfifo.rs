@@ -1,5 +1,5 @@
 #![crate_name = "mkfifo"]
-#![feature(macro_rules)]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -13,17 +13,19 @@
 extern crate getopts;
 extern crate libc;
 
+use std::ffi::CString;
 use std::num::FromStrRadix;
 use std::os;
 use libc::funcs::posix88::stat_::mkfifo;
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME : &'static str = "mkfifo";
 static VERSION : &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let opts = [
         getopts::optopt("m", "mode", "file permissions for the fifo", "(default 0666)"),
         getopts::optflag("h", "help", "display this help and exit"),
@@ -66,13 +68,11 @@ pub fn uumain(args: Vec<String>) -> int {
 
     let mut exit_status = 0;
     for f in matches.free.iter() {
-        f.with_c_str(|name| {
-            let err = unsafe { mkfifo(name, mode) };
-            if err == -1 {
-                show_error!("creating '{}': {}", f, os::error_string(os::errno()));
-                exit_status = 1;
-            }
-        });
+        let err = unsafe { mkfifo(CString::from_slice(f.as_bytes()).as_ptr(), mode) };
+        if err == -1 {
+            show_error!("creating '{}': {}", f, os::error_string(os::errno()));
+            exit_status = 1;
+        }
     }
 
     exit_status

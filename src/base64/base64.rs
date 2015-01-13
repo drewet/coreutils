@@ -1,4 +1,5 @@
 #![crate_name = "base64"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -9,15 +10,13 @@
  * that was distributed with this source code.
  */
 
-#![feature(phase)]
-#![feature(macro_rules)]
-
 extern crate serialize;
 extern crate getopts;
 extern crate libc;
-#[phase(plugin, link)] extern crate log;
+#[macro_use] extern crate log;
 
 use std::ascii::AsciiExt;
+use std::error::Error;
 use std::io::{println, File, stdout};
 use std::io::stdio::stdin_raw;
 
@@ -31,11 +30,12 @@ use serialize::base64;
 use serialize::base64::{FromBase64, ToBase64};
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME: &'static str = "base64";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let opts = [
         optflag("d", "decode", "decode data"),
         optflag("i", "ignore-garbage", "when decoding, ignore non-alphabetic characters"),
@@ -48,8 +48,7 @@ pub fn uumain(args: Vec<String>) -> int {
     let matches = match getopts(args.tail(), &opts) {
         Ok(m) => m,
         Err(e) => {
-            error!("error: {}", e);
-            panic!()
+            crash!(1, "error: {}", e);
         }
     };
 
@@ -69,8 +68,7 @@ pub fn uumain(args: Vec<String>) -> int {
         Some(s) => match s.parse() {
             Some(s) => s,
             None => {
-                error!("error: {}", "Argument to option 'wrap' improperly formatted.");
-                panic!()
+                crash!(1, "error: {}", "Argument to option 'wrap' improperly formatted.");
             }
         },
         None => 76
@@ -97,28 +95,27 @@ pub fn uumain(args: Vec<String>) -> int {
 }
 
 fn decode(input: &mut Reader, ignore_garbage: bool) {
-    let to_decode = match input.read_to_string() {
+    let mut to_decode = match input.read_to_string() {
         Ok(m) => m,
         Err(f) => panic!(f)
     };
 
-    let slice =
-        if ignore_garbage {
-            to_decode.as_slice()
-                .trim_chars(|&: c: char| {
-                    if !c.is_ascii() {
-                        return false;
-                    };
-                    !(c >= 'a' && c <= 'z' ||
-                      c >= 'A' && c <= 'Z' ||
-                      c >= '0' && c <= '9' ||
-                      c == '+' || c == '/' )
-                })
-        } else {
-            to_decode.as_slice()
-        };
+    if ignore_garbage {
+        let mut clean = String::new();
+        clean.extend(to_decode.chars().filter(|&c| {
+            if !c.is_ascii() {
+                false
+            } else {
+                c >= 'a' && c <= 'z' ||
+                c >= 'A' && c <= 'Z' ||
+                c >= '0' && c <= '9' ||
+                c == '+' || c == '/'
+            }
+        }));
+        to_decode = clean;
+    }
 
-    match slice.from_base64() {
+    match to_decode.as_slice().from_base64() {
         Ok(bytes) => {
             let mut out = stdout();
 
@@ -132,13 +129,12 @@ fn decode(input: &mut Reader, ignore_garbage: bool) {
             }
         }
         Err(s) => {
-            error!("error: {}", s);
-            panic!()
+            crash!(1, "error: {} ({})", s.description(), s.detail().unwrap_or("".to_string()));
         }
     }
 }
 
-fn encode(input: &mut Reader, line_wrap: uint) {
+fn encode(input: &mut Reader, line_wrap: usize) {
     let b64_conf = base64::Config {
         char_set: base64::Standard,
         newline: base64::Newline::LF,

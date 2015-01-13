@@ -1,5 +1,7 @@
 #![crate_name = "cat"]
-#![feature(unsafe_destructor)]
+#![allow(unstable)]
+
+#![feature(box_syntax, unsafe_destructor)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -19,7 +21,7 @@ use std::io::stdio::{stdout_raw, stdin_raw, stderr};
 use std::io::{IoResult};
 use std::ptr::{copy_nonoverlapping_memory};
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = args[0].as_slice();
     let opts = [
         getopts::optflag("A", "show-all", "equivalent to -vET"),
@@ -81,7 +83,7 @@ pub fn uumain(args: Vec<String>) -> int {
     0
 }
 
-#[deriving(Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 enum NumberingMode {
     NumberNone,
     NumberNonEmpty,
@@ -91,7 +93,7 @@ enum NumberingMode {
 fn write_lines(files: Vec<String>, number: NumberingMode, squeeze_blank: bool,
                show_ends: bool) {
 
-    let mut line_counter: uint = 1;
+    let mut line_counter: usize = 1;
 
     for path in files.iter() {
         let (mut reader, interactive) = match open(path.as_slice()) {
@@ -99,8 +101,8 @@ fn write_lines(files: Vec<String>, number: NumberingMode, squeeze_blank: bool,
             None => continue,
         };
 
-        let mut in_buf  = [0, .. 1024 * 31];
-        let mut out_buf = [0, .. 1024 * 64];
+        let mut in_buf  = [0; 1024 * 31];
+        let mut out_buf = [0; 1024 * 64];
         let mut writer = UnsafeWriter::new(out_buf.as_mut_slice(), stdout_raw());
         let mut at_line_start = true;
         loop {
@@ -164,7 +166,7 @@ fn write_lines(files: Vec<String>, number: NumberingMode, squeeze_blank: bool,
 fn write_bytes(files: Vec<String>, number: NumberingMode, squeeze_blank: bool,
                show_ends: bool, show_nonprint: bool, show_tabs: bool) {
 
-    let mut line_counter: uint = 1;
+    let mut line_counter: usize = 1;
 
     for path in files.iter() {
         let (mut reader, interactive) = match open(path.as_slice()) {
@@ -173,10 +175,10 @@ fn write_bytes(files: Vec<String>, number: NumberingMode, squeeze_blank: bool,
         };
 
         // Flush all 1024 iterations.
-        let mut flush_counter = range(0u, 1024);
+        let mut flush_counter = range(0us, 1024);
 
-        let mut in_buf  = [0, .. 1024 * 32];
-        let mut out_buf = [0, .. 1024 * 64];
+        let mut in_buf  = [0; 1024 * 32];
+        let mut out_buf = [0; 1024 * 64];
         let mut writer = UnsafeWriter::new(out_buf.as_mut_slice(), stdout_raw());
         let mut at_line_start = true;
         loop {
@@ -187,7 +189,7 @@ fn write_bytes(files: Vec<String>, number: NumberingMode, squeeze_blank: bool,
             for &byte in in_buf.slice_to(n).iter() {
                 if flush_counter.next().is_none() {
                     writer.possibly_flush();
-                    flush_counter = range(0u, 1024);
+                    flush_counter = range(0us, 1024);
                 }
                 if byte == '\n' as u8 {
                     if !at_line_start || !squeeze_blank {
@@ -242,7 +244,7 @@ fn write_bytes(files: Vec<String>, number: NumberingMode, squeeze_blank: bool,
 
 fn write_fast(files: Vec<String>) {
     let mut writer = stdout_raw();
-    let mut in_buf = [0, .. 1024 * 64];
+    let mut in_buf = [0; 1024 * 64];
 
     for path in files.iter() {
         let (mut reader, _) = match open(path.as_slice()) {
@@ -293,8 +295,8 @@ fn open(path: &str) -> Option<(Box<Reader>, bool)> {
 struct UnsafeWriter<'a, W> {
     inner: W,
     buf: &'a mut [u8],
-    pos: uint,
-    threshold: uint,
+    pos: usize,
+    threshold: usize,
 }
 
 impl<'a, W: Writer> UnsafeWriter<'a, W> {

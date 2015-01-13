@@ -1,4 +1,5 @@
 #![crate_name = "uname"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -12,16 +13,16 @@
 /* last synced with: uname (GNU coreutils) 8.21 */
 
 #![allow(non_camel_case_types)]
-#![feature(macro_rules)]
 
 extern crate getopts;
 extern crate libc;
 
+use std::ffi::c_str_to_bytes;
 use std::mem::uninitialized;
 use std::io::print;
 use c_types::utsname;
 
-#[path = "../common/util.rs"] mod util;
+#[path = "../common/util.rs"] #[macro_use] mod util;
 #[path = "../common/c_types.rs"] mod c_types;
 
 struct utsrust {
@@ -36,22 +37,26 @@ extern {
     fn uname(uts: *mut utsname);
 }
 
+unsafe fn string_from_c_str(ptr: *const i8) -> String {
+    String::from_utf8_lossy(c_str_to_bytes(&ptr)).to_string()
+}
+
 unsafe fn getuname() -> utsrust {
     let mut uts: utsname = uninitialized();
     uname(&mut uts);
     utsrust {
-        sysname:  String::from_raw_buf(uts.sysname.as_ptr()  as *const u8), 
-        nodename: String::from_raw_buf(uts.nodename.as_ptr() as *const u8),
-        release:  String::from_raw_buf(uts.release.as_ptr()  as *const u8), 
-        version:  String::from_raw_buf(uts.version.as_ptr()  as *const u8),
-        machine:  String::from_raw_buf(uts.machine.as_ptr()  as *const u8)
+        sysname:  string_from_c_str(uts.sysname.as_ptr()  as *const i8), 
+        nodename: string_from_c_str(uts.nodename.as_ptr() as *const i8),
+        release:  string_from_c_str(uts.release.as_ptr()  as *const i8), 
+        version:  string_from_c_str(uts.version.as_ptr()  as *const i8),
+        machine:  string_from_c_str(uts.machine.as_ptr()  as *const i8)
     }
 }
 
 
 static NAME: &'static str = "uname";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = args[0].as_slice();
     let opts = [
         getopts::optflag("h", "help", "display this help and exit"),

@@ -1,4 +1,6 @@
 #![crate_name = "groups"]
+#![allow(unstable)]
+
 /*
  * This file is part of the uutils coreutils package.
  *
@@ -8,8 +10,6 @@
  * file that was distributed with this source code.
  *
  */
-#![feature(macro_rules)]
-
 extern crate getopts;
 
 use getopts::{
@@ -19,13 +19,13 @@ use getopts::{
 };
 use c_types::{get_pw_from_args, group};
 
-#[path = "../common/util.rs"] mod util;
+#[path = "../common/util.rs"] #[macro_use]  mod util;
 #[path = "../common/c_types.rs"] mod c_types;
 
 static NAME: &'static str = "groups";
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = args[0].clone();
 
     let options = [

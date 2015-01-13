@@ -1,4 +1,5 @@
 #![crate_name = "cut"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -8,8 +9,6 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
-#![feature(macro_rules)]
 
 extern crate getopts;
 extern crate libc;
@@ -21,6 +20,7 @@ use getopts::{optopt, optflag, getopts, usage};
 use ranges::Range;
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 mod ranges;
 mod buffer;
@@ -54,7 +54,7 @@ fn list_to_ranges(list: &str, complement: bool) -> Result<Vec<Range>, String> {
 
 fn cut_bytes<R: Reader>(reader: R,
                         ranges: &Vec<Range>,
-                        opts: &Options) -> int {
+                        opts: &Options) -> isize {
     use buffer::Bytes::Select;
     use buffer::Bytes::Selected::{NewlineFound, Complete, Partial, EndOfFile};
 
@@ -135,7 +135,7 @@ fn cut_bytes<R: Reader>(reader: R,
 
 fn cut_characters<R: Reader>(reader: R,
                              ranges: &Vec<Range>,
-                             opts: &Options) -> int {
+                             opts: &Options) -> isize {
     let mut buf_in = BufferedReader::new(reader);
     let mut out = BufferedWriter::new(stdio::stdout_raw());
 
@@ -192,11 +192,11 @@ fn cut_characters<R: Reader>(reader: R,
     0
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct Searcher<'a> {
     haystack: &'a [u8],
     needle: &'a [u8],
-    position: uint
+    position: usize 
 }
 
 impl<'a> Searcher<'a> {
@@ -209,8 +209,10 @@ impl<'a> Searcher<'a> {
     }
 }
 
-impl<'a> Iterator<(uint, uint)> for Searcher<'a> {
-    fn next(&mut self) -> Option<(uint, uint)> {
+impl<'a> Iterator for Searcher<'a> {
+    type Item = (usize, usize);
+
+    fn next(&mut self) -> Option<(usize, usize)> {
         if self.needle.len() == 1 {
             for offset in range(self.position, self.haystack.len()) {
                 if self.haystack[offset] == self.needle[0] {
@@ -241,7 +243,7 @@ fn cut_fields_delimiter<R: Reader>(reader: R,
                                    ranges: &Vec<Range>,
                                    delim: &String,
                                    only_delimited: bool,
-                                   out_delim: &String) -> int {
+                                   out_delim: &String) -> isize {
     let mut buf_in = BufferedReader::new(reader);
     let mut out = BufferedWriter::new(stdio::stdout_raw());
 
@@ -315,7 +317,7 @@ fn cut_fields_delimiter<R: Reader>(reader: R,
 
 fn cut_fields<R: Reader>(reader: R,
                          ranges: &Vec<Range>,
-                         opts: &FieldOptions) -> int {
+                         opts: &FieldOptions) -> isize {
     match opts.out_delimeter {
         Some(ref delim) => {
             return cut_fields_delimiter(reader, ranges, &opts.delimiter,
@@ -394,7 +396,7 @@ fn cut_fields<R: Reader>(reader: R,
     0
 }
 
-fn cut_files(mut filenames: Vec<String>, mode: Mode) -> int {
+fn cut_files(mut filenames: Vec<String>, mode: Mode) -> isize {
     let mut stdin_read = false;
     let mut exit_code = 0;
 
@@ -446,7 +448,7 @@ fn cut_files(mut filenames: Vec<String>, mode: Mode) -> int {
     exit_code
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let opts = [
         optopt("b", "bytes", "select only these bytes", "LIST"),
         optopt("c", "characters", "select only these characters", "LIST"),

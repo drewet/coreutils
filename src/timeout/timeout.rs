@@ -1,4 +1,5 @@
 #![crate_name = "timeout"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -9,8 +10,6 @@
  * file that was distributed with this source code.
  */
 
-#![feature(macro_rules)]
-
 extern crate getopts;
 extern crate libc;
 
@@ -18,6 +17,7 @@ use std::io::{PathDoesntExist, FileNotFound};
 use std::io::process::{Command, ExitStatus, ExitSignal, InheritFd};
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 #[path = "../common/time.rs"]
@@ -33,9 +33,9 @@ extern {
 static NAME: &'static str = "timeout";
 static VERSION: &'static str = "1.0.0";
 
-static ERR_EXIT_STATUS: int = 125;
+static ERR_EXIT_STATUS: isize = 125;
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = args[0].clone();
 
     let opts = [
@@ -101,7 +101,7 @@ Usage:
     0
 }
 
-fn timeout(cmdname: &str, args: &[String], duration: f64, signal: uint, kill_after: f64, foreground: bool, preserve_status: bool) -> int {
+fn timeout(cmdname: &str, args: &[String], duration: f64, signal: usize, kill_after: f64, foreground: bool, preserve_status: bool) -> isize {
     if !foreground {
         unsafe { setpgid(0, 0) };
     }
@@ -129,7 +129,7 @@ fn timeout(cmdname: &str, args: &[String], duration: f64, signal: uint, kill_aft
             ExitSignal(stat) => stat
         },
         Err(_) => {
-            return_if_err!(ERR_EXIT_STATUS, process.signal(signal as int));
+            return_if_err!(ERR_EXIT_STATUS, process.signal(signal as isize));
             process.set_timeout(Some((kill_after * 1000f64) as u64));
             match process.wait() {
                 Ok(status) => {
@@ -147,7 +147,7 @@ fn timeout(cmdname: &str, args: &[String], duration: f64, signal: uint, kill_aft
                         // XXX: this may not be right
                         return 124;
                     }
-                    return_if_err!(ERR_EXIT_STATUS, process.signal(signals::signal_by_name_or_value("KILL").unwrap() as int));
+                    return_if_err!(ERR_EXIT_STATUS, process.signal(signals::signal_by_name_or_value("KILL").unwrap() as isize));
                     process.set_timeout(None);
                     return_if_err!(ERR_EXIT_STATUS, process.wait());
                     137

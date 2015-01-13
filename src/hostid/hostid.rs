@@ -1,6 +1,5 @@
 #![crate_name = "hostid"]
-#![feature(macro_rules)]
-#![feature(phase)]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -18,7 +17,7 @@ extern crate serialize;
 extern crate libc;
 
 
-#[phase(plugin, link)] extern crate log;
+#[macro_use] extern crate log;
 
 use getopts::{
     getopts,
@@ -29,12 +28,13 @@ use getopts::{
 use libc::{c_long};
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME:     &'static str = "hostid";
 static VERSION:  &'static str = "0.0.1";
 
-static EXIT_ERR: int = 1;
+static EXIT_ERR: isize = 1;
 
 pub enum Mode {
     HostId,
@@ -49,7 +49,7 @@ extern {
     pub fn gethostid() -> c_long;
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
 
     let opts = [
         optflag("", "help", "display this help and exit"),

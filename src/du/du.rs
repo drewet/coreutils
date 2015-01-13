@@ -1,4 +1,5 @@
 #![crate_name = "du"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -10,7 +11,6 @@
  */
 
 #![allow(non_snake_case)]
-#![feature(macro_rules)]
 
 extern crate getopts;
 extern crate libc;
@@ -21,10 +21,10 @@ use std::num::Float;
 use std::option::Option;
 use std::path::Path;
 use std::sync::{Arc, Future};
-use std::str::from_utf8;
 use time::Timespec;
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME: &'static str = "du";
@@ -33,7 +33,7 @@ static VERSION: &'static str = "1.0.0";
 struct Options {
     all: bool,
     program_name: String,
-    max_depth: Option<uint>,
+    max_depth: Option<usize>,
     total: bool,
     separate_dirs: bool,
 }
@@ -44,7 +44,7 @@ struct Stat {
 }
 // this takes `my_stat` to avoid having to stat files multiple times.
 fn du(path: &Path, mut my_stat: Stat,
-      options: Arc<Options>, depth: uint) -> Vec<Arc<Stat>> {
+      options: Arc<Options>, depth: usize) -> Vec<Arc<Stat>> {
     let mut stats = vec!();
     let mut futures = vec!();
 
@@ -90,7 +90,7 @@ fn du(path: &Path, mut my_stat: Stat,
     stats
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = args[0].as_slice();
     let opts = [
         // In task
@@ -194,7 +194,7 @@ ers of 1000).",
     let summarize = matches.opt_present("summarize");
 
     let max_depth_str = matches.opt_str("max-depth");
-    let max_depth = max_depth_str.as_ref().and_then(|s| s.parse::<uint>());
+    let max_depth = max_depth_str.as_ref().and_then(|s| s.parse::<usize>());
     match (max_depth_str, max_depth) {
         (Some(ref s), _) if summarize => {
             show_error!("summarizing conflicts with --max-depth={}", *s);
@@ -232,22 +232,22 @@ ers of 1000).",
         Some(s) => {
             let mut found_number = false;
             let mut found_letter = false;
-            let mut numbers = vec!();
-            let mut letters = vec!();
+            let mut numbers = String::new(); 
+            let mut letters = String::new(); 
             for c in s.as_slice().chars() {
                 if found_letter && c.is_digit(10) || !found_number && !c.is_digit(10) {
                     show_error!("invalid --block-size argument '{}'", s);
                     return 1;
                 } else if c.is_digit(10) {
                     found_number = true;
-                    numbers.push(c as u8);
+                    numbers.push(c);
                 } else if c.is_alphabetic() {
                     found_letter = true;
                     letters.push(c);
                 }
             }
-            let number = from_utf8(numbers.as_slice()).ok().unwrap().parse::<uint>().unwrap();
-            let multiple = match String::from_chars(letters.as_slice()).as_slice() {
+            let number = numbers.parse::<usize>().unwrap();
+            let multiple = match letters.as_slice() {
                 "K" => 1024, "M" => 1024 * 1024, "G" => 1024 * 1024 * 1024,
                 "T" => 1024 * 1024 * 1024 * 1024, "P" => 1024 * 1024 * 1024 * 1024 * 1024,
                 "E" => 1024 * 1024 * 1024 * 1024 * 1024 * 1024,
@@ -268,7 +268,7 @@ ers of 1000).",
         None => 1024
     };
 
-    let convert_size = |size: u64| -> String {
+    let convert_size = |&: size: u64| -> String {
         if matches.opt_present("human-readable") || matches.opt_present("si") {
             if size >= MB {
                 format!("{:.1}M", (size as f64) / (MB as f64))

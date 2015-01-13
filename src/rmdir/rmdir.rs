@@ -1,4 +1,5 @@
 #![crate_name = "rmdir"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -9,8 +10,6 @@
  * file that was distributed with this source code.
  */
 
-#![feature(macro_rules)]
-
 extern crate getopts;
 extern crate libc;
 
@@ -18,11 +17,12 @@ use std::io::{print, fs};
 use std::io::fs::PathExtensions;
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME: &'static str = "rmdir";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = args[0].clone();
 
     let opts = [
@@ -66,7 +66,7 @@ pub fn uumain(args: Vec<String>) -> int {
     0
 }
 
-fn remove(dirs: Vec<String>, ignore: bool, parents: bool, verbose: bool) -> Result<(), int>{
+fn remove(dirs: Vec<String>, ignore: bool, parents: bool, verbose: bool) -> Result<(), isize>{
     let mut r = Ok(());
 
     for dir in dirs.iter() {
@@ -87,7 +87,7 @@ fn remove(dirs: Vec<String>, ignore: bool, parents: bool, verbose: bool) -> Resu
     r
 }
 
-fn remove_dir(path: &Path, dir: &str, ignore: bool, parents: bool, verbose: bool) -> Result<(), int> {
+fn remove_dir(path: &Path, dir: &str, ignore: bool, parents: bool, verbose: bool) -> Result<(), isize> {
     let mut walk_dir = match fs::walk_dir(path) {
         Ok(m) => m,
         Err(f) => {

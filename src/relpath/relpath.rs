@@ -1,4 +1,5 @@
 #![crate_name = "relpath"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -9,18 +10,17 @@
  * file that was distributed with this source code.
  */
 
-#![feature(macro_rules)]
 extern crate getopts;
 extern crate libc;
 
 use getopts::{optflag, optopt, getopts, usage};
 
-#[path = "../common/util.rs"] mod util;
+#[path = "../common/util.rs"] #[macro_use] mod util;
 
 static NAME: &'static str = "relpath";
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = &args[0];
     let options = [
         optflag("h", "help", "Show help and exit"),
@@ -65,14 +65,13 @@ pub fn uumain(args: Vec<String>) -> int {
     }
 
     let mut suffix_pos = 0;
-    absfrom.components()
-        .zip(absto.components())
-        .take_while(
-            |&(f, t)| if f == t {
-                suffix_pos += 1; true
-            } else {
-                false
-            }).last();
+    for (f, t) in absfrom.components().zip(absto.components()) {
+        if f == t {
+            suffix_pos += 1;
+        } else {
+            break;
+        }
+    }
 
     let mut result = Path::new("");
     absfrom.components().skip(suffix_pos).map(|_| result.push("..")).last();

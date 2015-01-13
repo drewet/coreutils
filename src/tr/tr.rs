@@ -1,5 +1,5 @@
 #![crate_name = "tr"]
-#![feature(macro_rules)]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -22,6 +22,7 @@ use std::iter::FromIterator;
 use std::vec::Vec;
 
 #[path="../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME : &'static str = "tr";
@@ -92,13 +93,15 @@ fn delete(set: Vec<char>, complement: bool) {
     let mut out = stdout();
 
     for &c in set.iter() {
-        bset.insert(c as uint);
+        bset.insert(c as usize);
     }
 
-    let is_allowed = if complement {
-        |c: char| bset.contains(&(c as uint))
-    } else {
-        |c: char| !bset.contains(&(c as uint))
+    let is_allowed = |&: c : char| {
+        if complement {
+            bset.contains(&(c as usize))
+        } else {
+            !bset.contains(&(c as usize))
+        }
     };
 
     for c in BufferedReader::new(stdin_raw()).chars() {
@@ -111,7 +114,7 @@ fn delete(set: Vec<char>, complement: bool) {
 }
 
 fn tr(set1: &[char], set2: &[char]) {
-    const BUFFER_LEN: uint = 1024;
+    const BUFFER_LEN: usize = 1024;
 
     let mut map = VecMap::new();
     let mut stdout = stdout();
@@ -120,16 +123,16 @@ fn tr(set1: &[char], set2: &[char]) {
     let set2_len = set2.len();
     for i in range(0, set1.len()) {
         if i >= set2_len {
-            map.insert(set1[i] as uint, set2[set2_len - 1]);
+            map.insert(set1[i] as usize, set2[set2_len - 1]);
         } else {
-            map.insert(set1[i] as uint, set2[i]);
+            map.insert(set1[i] as usize, set2[i]);
         }
     }
 
     for c in BufferedReader::new(stdin_raw()).chars() {
         match c {
             Ok(inc) => {
-                let trc = match map.get(&(inc as uint)) {
+                let trc = match map.get(&(inc as usize)) {
                     Some(t) => *t,
                     None => inc,
                 };
@@ -158,7 +161,7 @@ fn usage(opts: &[OptGroup]) {
     print(getopts::usage("Translate or delete characters.", opts).as_slice());
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let opts = [
         getopts::optflag("c", "complement", "use the complement of SET1"),
         getopts::optflag("C", "", "same as -c"),

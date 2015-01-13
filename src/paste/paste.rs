@@ -1,4 +1,5 @@
 #![crate_name = "paste"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -9,20 +10,20 @@
  * file that was distributed with this source code.
  */
 
-#![feature(macro_rules)]
-
 extern crate getopts;
 extern crate libc;
 
 use std::io;
+use std::iter::repeat; 
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME: &'static str = "paste";
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = args[0].clone();
 
     let opts = [
@@ -60,10 +61,10 @@ fn paste(filenames: Vec<String>, serial: bool, delimiters: &str) {
     let mut files: Vec<io::BufferedReader<Box<Reader>>> = filenames.into_iter().map(|name|
         io::BufferedReader::new(
             if name.as_slice() == "-" {
-                box io::stdio::stdin_raw() as Box<Reader>
+                Box::new(io::stdio::stdin_raw()) as Box<Reader>
             } else {
                 let r = crash_if_err!(1, io::File::open(&Path::new(name)));
-                box r as Box<Reader>
+                Box::new(r) as Box<Reader>
             }
         )
     ).collect();
@@ -89,7 +90,7 @@ fn paste(filenames: Vec<String>, serial: bool, delimiters: &str) {
             println!("{}", output.as_slice().slice_to(output.len() - 1));
         }
     } else {
-        let mut eof = Vec::from_elem(files.len(), false);
+        let mut eof : Vec<bool> = repeat(false).take(files.len()).collect();
         loop {
             let mut output = "".to_string();
             let mut eof_count = 0;

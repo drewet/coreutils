@@ -1,4 +1,5 @@
 #![crate_name = "truncate"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -9,8 +10,6 @@
  * file that was distributed with this source code.
  */
 
-#![feature(macro_rules)]
-
 extern crate getopts;
 extern crate libc;
 
@@ -19,9 +18,10 @@ use std::io::{File, Open, ReadWrite, fs};
 use std::io::fs::PathExtensions;
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
-#[deriving(Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 enum TruncateMode {
     Reference,
     Extend,
@@ -34,7 +34,7 @@ enum TruncateMode {
 
 static NAME: &'static str = "truncate";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = args[0].clone();
 
     let opts = [
@@ -100,7 +100,7 @@ file based on its current size:
     0
 }
 
-fn truncate(no_create: bool, _: bool, reference: Option<String>, size: Option<String>, filenames: Vec<String>) -> Result<(), int> {
+fn truncate(no_create: bool, _: bool, reference: Option<String>, size: Option<String>, filenames: Vec<String>) -> Result<(), isize> {
     let (refsize, mode) = match reference {
         Some(rfilename) => {
             let rfile = match File::open(&Path::new(rfilename.clone())) {

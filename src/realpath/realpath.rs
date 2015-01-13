@@ -1,4 +1,5 @@
 #![crate_name= "realpath"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -9,18 +10,17 @@
  * file that was distributed with this source code.
  */
 
-#![feature(macro_rules)]
 extern crate getopts;
 extern crate libc;
 
 use getopts::{optflag, getopts, usage};
 
-#[path = "../common/util.rs"] mod util;
+#[path = "../common/util.rs"] #[macro_use] mod util;
 
 static NAME: &'static str = "realpath";
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = &args[0];
     let options = [
         optflag("h", "help", "Show help and exit"),
@@ -52,11 +52,11 @@ pub fn uumain(args: Vec<String>) -> int {
     let zero = opts.opt_present("z");
     let quiet = opts.opt_present("q");
     let mut retcode = 0;
-    opts.free.iter().map(|x|
-        if !resolve_path(x.as_slice(), strip, zero, quiet) {
+    for path in opts.free.iter() {
+        if !resolve_path(path.as_slice(), strip, zero, quiet) {
             retcode = 1
-        }
-    ).last();
+        };
+    }
     retcode
 }
 
@@ -78,7 +78,7 @@ fn resolve_path(path: &str, strip: bool, zero: bool, quiet: bool) -> bool {
         Some(x) => x,
     };
 
-    let mut links_left = 256i;
+    let mut links_left = 256is;
 
     for part in abs.components() {
         result.push(part);

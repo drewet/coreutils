@@ -1,4 +1,5 @@
 #![crate_name = "printenv"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -11,8 +12,6 @@
 
 /* last synced with: printenv (GNU coreutils) 8.13 */
 
-#![feature(macro_rules)]
-
 extern crate getopts;
 extern crate libc;
 
@@ -20,11 +19,12 @@ use std::os;
 use std::io::print;
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME: &'static str = "printenv";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = args[0].clone();
     let opts = [
         getopts::optflag("0", "null", "end each output line with 0 byte rather than newline"),

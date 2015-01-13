@@ -1,4 +1,5 @@
 #![crate_name = "hashsum"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -10,8 +11,6 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
-#![feature(macro_rules)]
 
 extern crate regex;
 
@@ -31,6 +30,7 @@ use crypto::sha1::Sha1;
 use crypto::sha2::{Sha224, Sha256, Sha384, Sha512};
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME: &'static str = "hashsum";
@@ -64,25 +64,25 @@ fn detect_algo(program: &str, matches: &getopts::Matches) -> (&'static str, Box<
     let mut alg: Option<Box<Digest>> = None;
     let mut name: &'static str = "";
     match program {
-        "md5sum" => ("MD5", box Md5::new() as Box<Digest>),
-        "sha1sum" => ("SHA1", box Sha1::new() as Box<Digest>),
-        "sha224sum" => ("SHA224", box Sha224::new() as Box<Digest>),
-        "sha256sum" => ("SHA256", box Sha256::new() as Box<Digest>),
-        "sha384sum" => ("SHA384", box Sha384::new() as Box<Digest>),
-        "sha512sum" => ("SHA512", box Sha512::new() as Box<Digest>),
+        "md5sum" => ("MD5", Box::new(Md5::new()) as Box<Digest>),
+        "sha1sum" => ("SHA1", Box::new(Sha1::new()) as Box<Digest>),
+        "sha224sum" => ("SHA224", Box::new(Sha224::new()) as Box<Digest>),
+        "sha256sum" => ("SHA256", Box::new(Sha256::new()) as Box<Digest>),
+        "sha384sum" => ("SHA384", Box::new(Sha384::new()) as Box<Digest>),
+        "sha512sum" => ("SHA512", Box::new(Sha512::new()) as Box<Digest>),
         _ => {
             {
-                let set_or_crash = |n, val| -> () {
+                let mut set_or_crash = |&mut: n, val| -> () {
                     if alg.is_some() { crash!(1, "You cannot combine multiple hash algorithms!") };
                     name = n;
                     alg = Some(val);
                 };
-                if matches.opt_present("md5") { set_or_crash("MD5", box Md5::new()) };
-                if matches.opt_present("sha1") { set_or_crash("SHA1", box Sha1::new()) };
-                if matches.opt_present("sha224") { set_or_crash("SHA224", box Sha224::new()) };
-                if matches.opt_present("sha256") { set_or_crash("SHA256", box Sha256::new()) };
-                if matches.opt_present("sha384") { set_or_crash("SHA384", box Sha384::new()) };
-                if matches.opt_present("sha512") { set_or_crash("SHA512", box Sha512::new()) };
+                if matches.opt_present("md5") { set_or_crash("MD5", Box::new(Md5::new())) };
+                if matches.opt_present("sha1") { set_or_crash("SHA1", Box::new(Sha1::new())) };
+                if matches.opt_present("sha224") { set_or_crash("SHA224", Box::new(Sha224::new())) };
+                if matches.opt_present("sha256") { set_or_crash("SHA256", Box::new(Sha256::new())) };
+                if matches.opt_present("sha384") { set_or_crash("SHA384", Box::new(Sha384::new())) };
+                if matches.opt_present("sha512") { set_or_crash("SHA512", Box::new(Sha512::new())) };
             }
             if alg.is_none() { crash!(1, "You must specify hash algorithm!") };
             (name, alg.unwrap())
@@ -90,7 +90,7 @@ fn detect_algo(program: &str, matches: &getopts::Matches) -> (&'static str, Box<
     }
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = args[0].clone();
     let binary = Path::new(program.as_slice());
     let binary_name = binary.filename_str().unwrap();
@@ -168,9 +168,9 @@ fn usage(program: &str, binary_name: &str, opts: &[getopts::OptGroup]) {
     pipe_print!("{}", getopts::usage("Compute and check message digests.", opts));
 }
 
-fn hashsum(algoname: &str, mut digest: Box<Digest>, files: Vec<String>, binary: bool, check: bool, tag: bool, status: bool, quiet: bool, strict: bool, warn: bool) -> Result<(), int> {
-    let mut bad_format = 0u;
-    let mut failed = 0u;
+fn hashsum(algoname: &str, mut digest: Box<Digest>, files: Vec<String>, binary: bool, check: bool, tag: bool, status: bool, quiet: bool, strict: bool, warn: bool) -> Result<(), isize> {
+    let mut bad_format = 0;
+    let mut failed = 0;
     let binary_marker = if binary {
         "*"
     } else {
@@ -275,7 +275,7 @@ fn digest_reader(digest: &mut Box<Digest>, reader: &mut Reader, binary: bool) ->
 
     // Digest file, do not hold too much in memory at any given moment
     let windows = cfg!(windows);
-    let mut buffer = [0, ..524288];
+    let mut buffer = [0; 524288];
     let mut vec = Vec::with_capacity(524288);
     let mut looking_for_newline = false;
     loop {

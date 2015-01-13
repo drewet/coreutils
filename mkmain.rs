@@ -1,12 +1,15 @@
+#![allow(unstable)]
+
 use std::io::{File, Truncate, ReadWrite};
 use std::os;
 use std::path::Path;
 
 static TEMPLATE: &'static str = "\
-extern crate @UTIL_CRATE@;
+#![allow(unstable)]
+extern crate \"@UTIL_CRATE@\" as uu@UTIL_CRATE@;
 
 use std::os;
-use @UTIL_CRATE@::uumain;
+use uu@UTIL_CRATE@::uumain;
 
 fn main() {
     os::set_exit_status(uumain(os::args()));
@@ -21,14 +24,8 @@ fn main() {
         return;
     }
 
-    let crat = match args[1].as_slice() {
-        "test" => "uutest",
-        "true" => "uutrue",
-        "false" => "uufalse",
-        "sync" => "uusync",
-        s => s.clone(),
-    };
-    let outfile  = args[2].as_slice();
+    let crat    = args[1].as_slice();
+    let outfile = args[2].as_slice();
 
     let main = TEMPLATE.replace("@UTIL_CRATE@", crat);
     let mut out = File::open_mode(&Path::new(outfile), Truncate, ReadWrite);

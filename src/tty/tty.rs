@@ -1,5 +1,5 @@
 #![crate_name = "tty"]
-
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -14,16 +14,16 @@
 
 #![allow(dead_code)]
 
-#![feature(macro_rules)]
-
 extern crate getopts;
 extern crate libc;
 
+use std::ffi::c_str_to_bytes;
 use std::io::println;
 use std::io::stdio::stderr;
 use getopts::{optflag,getopts};
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 extern {
@@ -33,7 +33,7 @@ extern {
 
 static NAME: &'static str = "tty";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let options = [
         optflag("s", "silent", "print nothing, only return an exit status")
     ];
@@ -49,7 +49,14 @@ pub fn uumain(args: Vec<String>) -> int {
         }
     };
 
-    let tty = unsafe { String::from_raw_buf(ttyname(libc::STDIN_FILENO) as *const u8) };
+    let tty = unsafe { 
+        let ptr = ttyname(libc::STDIN_FILENO);
+        if !ptr.is_null() {
+            String::from_utf8_lossy(c_str_to_bytes(&ptr)).to_string()
+        } else {
+            "".to_string()
+        }
+    };
 
     if !silent {
         if !tty.as_slice().chars().all(|c| c.is_whitespace()) {
@@ -67,7 +74,7 @@ pub fn uumain(args: Vec<String>) -> int {
         }
     };
 
-    exit_code as int
+    exit_code as isize
 }
 
 fn usage () {

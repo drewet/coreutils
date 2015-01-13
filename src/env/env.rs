@@ -1,4 +1,5 @@
 #![crate_name = "env"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -12,6 +13,7 @@
 /* last synced with: env (GNU coreutils) 8.13 */
 
 #![allow(non_camel_case_types)]
+#![feature(box_syntax)]
 
 struct options {
     ignore_env: bool,
@@ -51,7 +53,7 @@ fn print_env(null: bool) {
     }
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let prog = args[0].as_slice();
 
     // to handle arguments the same way than GNU env, we can't use getopts
@@ -82,7 +84,7 @@ pub fn uumain(args: Vec<String>) -> int {
 
             match (name, value) {
                 (Some(n), Some(v)) => {
-                    opts.sets.push((n.into_string(), v.into_string()));
+                    opts.sets.push((n.to_string(), v.to_string()));
                 }
                 _ => {
                     // read the program now
@@ -154,7 +156,7 @@ pub fn uumain(args: Vec<String>) -> int {
             match (name, value) {
                 (Some(n), Some(v)) => {
                     // yes
-                    opts.sets.push((n.into_string(), v.into_string()));
+                    opts.sets.push((n.to_string(), v.to_string()));
                     wait_cmd = true;
                 }
                 // no, its a program-like opt

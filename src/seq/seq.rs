@@ -1,6 +1,5 @@
 #![crate_name = "seq"]
-
-#![feature(macro_rules)]
+#![allow(unstable)]
 
 // TODO: Make -w flag work with decimals
 // TODO: Support -f flag
@@ -11,11 +10,12 @@ extern crate libc;
 use std::cmp;
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME: &'static str = "seq";
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct SeqOptions {
     separator: String,
     terminator: Option<String>,
@@ -37,7 +37,7 @@ fn escape_sequences(s: &str) -> String {
         replace("\\t", "\t")
 }
 
-fn parse_options(args: Vec<String>, options: &mut SeqOptions) -> Result<Vec<String>, int> {
+fn parse_options(args: Vec<String>, options: &mut SeqOptions) -> Result<Vec<String>, isize> {
     let mut seq_args = vec!();
     let program = args[0].clone();
     let mut iter = args.into_iter().skip(1);
@@ -146,7 +146,7 @@ fn print_version() {
     println!("seq 1.0.0\n");
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = args[0].clone();
     let mut options = SeqOptions {
         separator: "\n".to_string(),
@@ -216,8 +216,8 @@ fn done_printing(next: f64, step: f64, last: f64) -> bool {
     }
 }
 
-fn print_seq(first: f64, step: f64, last: f64, largest_dec: uint, separator: String, terminator: String, pad: bool, padding: uint) {
-    let mut i = 0i;
+fn print_seq(first: f64, step: f64, last: f64, largest_dec: usize, separator: String, terminator: String, pad: bool, padding: usize) {
+    let mut i = 0is;
     let mut value = first + i as f64 * step;
     while !done_printing(value, step, last) {
         let istr = value.to_string();

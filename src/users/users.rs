@@ -1,4 +1,5 @@
 #![crate_name = "users"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -14,17 +15,17 @@
 // Allow dead code here in order to keep all fields, constants here, for consistency.
 #![allow(dead_code, non_camel_case_types)]
 
-#![feature(macro_rules, globs)]
-
 extern crate getopts;
 extern crate libc;
 
+use std::ffi::{CString, c_str_to_bytes};
 use std::io::print;
 use std::mem;
 use std::ptr;
 use utmpx::*;
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 #[path = "../common/utmpx.rs"]
@@ -51,7 +52,7 @@ unsafe extern fn utmpxname(_file: *const libc::c_char) -> libc::c_int {
 
 static NAME: &'static str = "users";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = args[0].as_slice();
     let opts = [
         getopts::optflag("h", "help", "display this help and exit"),
@@ -89,11 +90,9 @@ pub fn uumain(args: Vec<String>) -> int {
 }
 
 fn exec(filename: &str) {
-    filename.with_c_str(|filename| {
-        unsafe {
-            utmpxname(filename);
-        }
-    });
+    unsafe {
+        utmpxname(CString::from_slice(filename.as_bytes()).as_ptr());
+    }
 
     let mut users = vec!();
 
@@ -108,7 +107,7 @@ fn exec(filename: &str) {
             }
 
             if (*line).ut_type == USER_PROCESS {
-                let user = String::from_raw_buf(mem::transmute(&(*line).ut_user));
+                let user = String::from_utf8_lossy(c_str_to_bytes(mem::transmute(&(*line).ut_user))).to_string();
                 users.push(user);
             }
         }

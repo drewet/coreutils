@@ -1,5 +1,5 @@
 #![crate_name = "cksum"]
-#![feature(macro_rules)]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -19,6 +19,7 @@ use std::mem;
 use crc_table::CRC_TABLE;
 
 #[path="../common/util.rs"]
+#[macro_use]
 mod util;
 
 mod crc_table;
@@ -28,11 +29,11 @@ static VERSION: &'static str = "1.0.0";
 
 #[inline]
 fn crc_update(crc: u32, input: u8) -> u32 {
-    (crc << 8) ^ CRC_TABLE[((crc >> 24) as uint ^ input as uint) & 0xFF]
+    (crc << 8) ^ CRC_TABLE[((crc >> 24) as usize ^ input as usize) & 0xFF]
 }
 
 #[inline]
-fn crc_final(mut crc: u32, mut length: uint) -> u32 {
+fn crc_final(mut crc: u32, mut length: usize) -> u32 {
     while length != 0 {
         crc = crc_update(crc, length as u8);
         length >>= 8;
@@ -42,9 +43,9 @@ fn crc_final(mut crc: u32, mut length: uint) -> u32 {
 }
 
 #[inline]
-fn cksum(fname: &str) -> IoResult<(u32, uint)> {
+fn cksum(fname: &str) -> IoResult<(u32, usize)> {
     let mut crc = 0u32;
-    let mut size = 0u;
+    let mut size = 0us;
 
     let mut stdin_buf;
     let mut file_buf;
@@ -59,7 +60,7 @@ fn cksum(fname: &str) -> IoResult<(u32, uint)> {
         }
     };
 
-    let mut bytes: [u8, ..1024 * 1024] = unsafe { mem::uninitialized() };
+    let mut bytes: [u8; 1024 * 1024] = unsafe { mem::uninitialized() };
     loop {
         match rd.read(&mut bytes) {
             Ok(num_bytes) => {
@@ -74,7 +75,7 @@ fn cksum(fname: &str) -> IoResult<(u32, uint)> {
     }
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let opts = [
         getopts::optflag("h", "help", "display this help and exit"),
         getopts::optflag("V", "version", "output version information and exit"),

@@ -1,5 +1,6 @@
 #![crate_name = "nl"]
-#![feature(macro_rules)]
+#![allow(unstable)]
+
 /*
  * This file is part of the uutils coreutils package.
  *
@@ -9,21 +10,22 @@
  * file that was distributed with this source code.
  *
  */
+#![feature(plugin)]
 
-#![feature(phase)]
-#[phase(plugin)]
-extern crate regex_macros;
+#[plugin] #[no_link] extern crate regex_macros;
 extern crate regex;
 extern crate getopts;
 
 use std::io::{stdin};
 use std::io::BufferedReader;
 use std::io::fs::File;
+use std::iter::repeat;
 use std::num::Int;
 use std::path::Path;
 use getopts::{optopt, optflag, getopts, usage, OptGroup};
 
 #[path="../common/util.rs"]
+#[macro_use]
 mod util;
 mod helper;
 
@@ -39,12 +41,12 @@ struct Settings {
     body_numbering: NumberingStyle,
     footer_numbering: NumberingStyle,
     // The variable corresponding to -d
-    section_delimiter: [char, ..2],
+    section_delimiter: [char; 2],
     // The variables corresponding to the options -v, -i, -l, -w.
     starting_line_number: u64,
     line_increment: u64,
     join_blank_lines: u64,
-    number_width: uint, // Used with String::from_char, hence uint.
+    number_width: usize, // Used with String::from_char, hence usize.
     // The format of the number and the (default value for)
     // renumbering each page.
     number_format: NumberFormat,
@@ -75,7 +77,7 @@ enum NumberFormat {
     RightZero,
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let possible_options = [
         optopt("b", "body-numbering", "use STYLE for numbering body lines", "STYLE"),
         optopt("d", "section-delimiter", "use CC for separating logical pages", "CC"),
@@ -280,11 +282,11 @@ fn nl<T: Reader> (reader: &mut BufferedReader<T>, settings: &Settings) {
         // way, start counting empties from zero once more.
         empty_line_count = 0;
         // A line number is to be printed.
-        let mut w: uint = 0;
+        let mut w: usize = 0;
         if settings.number_width > line_no_width {
             w = settings.number_width - line_no_width;
         }
-        let fill = String::from_char(w, fill_char);
+        let fill : String = repeat(fill_char).take(w).collect();
         match settings.number_format {
             NumberFormat::Left => {
                 println!("{1}{0}{2}{3}", fill, line_no, settings.number_separator, line)

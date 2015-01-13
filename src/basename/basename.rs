@@ -1,5 +1,5 @@
-#![feature(macro_rules)]
 #![crate_name = "basename"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -17,12 +17,13 @@ use std::borrow::ToOwned;
 use std::io::{print, println};
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME: &'static str = "basename";
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = strip_dir(args[0].as_slice());
 
     //

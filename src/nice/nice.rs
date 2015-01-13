@@ -1,4 +1,5 @@
 #![crate_name = "nice"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -9,14 +10,12 @@
  * file that was distributed with this source code.
  */
 
-#![feature(macro_rules)]
-
 extern crate getopts;
 extern crate libc;
 
+use std::ffi::CString;
 use std::io::IoError;
 use std::os;
-use std::ptr;
 use libc::{c_char, c_int, execvp};
 
 const NAME: &'static str = "nice";
@@ -26,6 +25,7 @@ const VERSION: &'static str = "1.0.0";
 const PRIO_PROCESS: c_int = 0;
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 extern {
@@ -33,7 +33,7 @@ extern {
     fn setpriority(which: c_int, who: c_int, prio: c_int) -> c_int;
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let opts = [
         getopts::optopt("n", "adjustment", "add N to the niceness (default is 10)", "N"),
         getopts::optflag("h", "help", "display this help and exit"),
@@ -102,12 +102,10 @@ pub fn uumain(args: Vec<String>) -> int {
             show_warning!("{}", IoError::last_error());
         }
 
-        unsafe {
-            let executable = matches.free[0].to_c_str().into_inner();
-            let mut args: Vec<*const i8> = matches.free.iter().map(|x| x.to_c_str().into_inner()).collect();
-            args.push(ptr::null());
-            execvp(executable as *const c_char, args.as_ptr() as *mut *const c_char);
-        }
+        let cstrs : Vec<CString> = matches.free.iter().map(|x| CString::from_slice(x.as_bytes())).collect();
+        let mut args : Vec<*const c_char> = cstrs.iter().map(|s| s.as_ptr()).collect();
+        args.push(0 as *const c_char);
+        unsafe { execvp(args[0], args.as_mut_ptr()); }
 
         show_error!("{}", IoError::last_error());
         if os::errno() as c_int == libc::ENOENT { 127 } else { 126 }

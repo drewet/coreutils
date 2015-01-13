@@ -1,4 +1,5 @@
 #![crate_name = "mv"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -9,8 +10,6 @@
  * For the full copyright and license information, please view the LICENSE file
  * that was distributed with this source code.
  */
-
-#![feature(macro_rules)]
 
 extern crate getopts;
 
@@ -28,6 +27,7 @@ use getopts::{
 use std::borrow::ToOwned;
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME: &'static str = "mv";
@@ -43,7 +43,7 @@ pub struct Behaviour {
     verbose: bool,
 }
 
-#[deriving(Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 pub enum OverwriteMode {
     NoClobber,
     Interactive,
@@ -52,7 +52,7 @@ pub enum OverwriteMode {
 
 impl Copy for OverwriteMode {}
 
-#[deriving(Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 pub enum BackupMode {
     NoBackup,
     SimpleBackup,
@@ -62,7 +62,7 @@ pub enum BackupMode {
 
 impl Copy for BackupMode {}
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = args[0].as_slice();
     let opts = [
         optflagopt("",  "backup", "make a backup of each existing destination file", "CONTROL"),
@@ -187,7 +187,7 @@ fn help(progname: &str, usage: &str) {
     println!("{}", msg);
 }
 
-fn exec(files: &[Path], b: Behaviour) -> int {
+fn exec(files: &[Path], b: Behaviour) -> isize {
     match b.target_dir {
         Some(ref name) => return move_files_into_dir(files, &Path::new(name.as_slice()), &b),
         None => {}
@@ -245,7 +245,7 @@ fn exec(files: &[Path], b: Behaviour) -> int {
     0
 }
 
-fn move_files_into_dir(files: &[Path], target_dir: &Path, b: &Behaviour) -> int {
+fn move_files_into_dir(files: &[Path], target_dir: &Path, b: &Behaviour) -> isize {
     if !target_dir.is_dir() {
         show_error!("target ‘{}’ is not a directory", target_dir.display());
         return 1;

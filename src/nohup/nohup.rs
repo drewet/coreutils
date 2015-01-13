@@ -1,4 +1,5 @@
 #![crate_name = "nohup"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -9,20 +10,21 @@
  * file that was distributed with this source code.
  */
 
-#![feature(globs, macro_rules)]
 extern crate getopts;
 extern crate libc;
 
 use getopts::{optflag, getopts, usage};
+use std::ffi::CString;
 use std::io::stdio::{stdin_raw, stdout_raw, stderr_raw};
 use std::io::{File, Open, Read, Append, Write};
 use std::os::unix::prelude::*;
+use libc::c_char;
 use libc::funcs::posix88::unistd::{dup2, execvp};
 use libc::consts::os::posix88::SIGHUP;
 use libc::funcs::posix01::signal::signal;
 use libc::consts::os::posix01::SIG_IGN;
 
-#[path = "../common/util.rs"] mod util;
+#[path = "../common/util.rs"] #[macro_use] mod util;
 #[path = "../common/c_types.rs"] mod c_types;
 
 static NAME: &'static str = "nohup";
@@ -36,7 +38,7 @@ extern {
 #[cfg(any(target_os = "linux", target_os = "freebsd"))]
 unsafe fn _vprocmgr_detach_from_console(_: u32) -> *const libc::c_int { std::ptr::null() }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = &args[0];
 
     let options = [
@@ -67,13 +69,10 @@ pub fn uumain(args: Vec<String>) -> int {
 
     if unsafe { _vprocmgr_detach_from_console(0) } != std::ptr::null() { crash!(2, "Cannot detach from console")};
 
-    unsafe {
-        // we ignore the memory leak here because it doesn't matter anymore
-        let executable = opts.free[0].as_slice().to_c_str().into_inner();
-        let mut args: Vec<*const i8> = opts.free.iter().map(|x| x.to_c_str().into_inner()).collect();
-        args.push(std::ptr::null());
-        execvp(executable as *const libc::c_char, args.as_ptr() as *mut *const libc::c_char) as int
-    }
+    let cstrs : Vec<CString> = opts.free.iter().map(|x| CString::from_slice(x.as_bytes())).collect();
+    let mut args : Vec<*const c_char> = cstrs.iter().map(|s| s.as_ptr()).collect();
+    args.push(std::ptr::null());
+    unsafe { execvp(args[0], args.as_mut_ptr()) as isize }
 }
 
 fn replace_fds() {

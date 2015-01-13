@@ -1,4 +1,6 @@
 #![crate_name = "hostname"]
+#![allow(unstable)]
+
 /*
  * This file is part of the uutils coreutils package.
  *
@@ -12,17 +14,17 @@
  * https://www.opensource.apple.com/source/shell_cmds/shell_cmds-170/hostname/hostname.c?txt
  */
 
-#![feature(macro_rules)]
-
 extern crate getopts;
 extern crate libc;
 
 use std::collections::hash_set::HashSet;
 use std::io::net::addrinfo;
+use std::iter::repeat;
 use std::str;
 use getopts::{optflag, getopts, usage};
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME: &'static str = "hostname";
@@ -41,7 +43,7 @@ extern {
     fn sethostname(name: *const libc::c_char, namelen: libc::size_t) -> libc::c_int;
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = &args[0];
 
     let options = [
@@ -130,9 +132,8 @@ fn help_menu(program: &str, options: &[getopts::OptGroup]) {
 }
 
 fn xgethostname() -> String {
-    let namelen = 256u;
-    let mut name = Vec::from_elem(namelen, 0u8);
-
+    let namelen = 256us;
+    let mut name : Vec<u8> = repeat(0).take(namelen).collect();
     let err = unsafe {
         gethostname (name.as_mut_ptr() as *mut libc::c_char,
                                         namelen as libc::size_t)

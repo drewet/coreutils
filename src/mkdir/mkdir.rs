@@ -1,4 +1,5 @@
 #![crate_name = "mkdir"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -9,16 +10,15 @@
  * file that was distributed with this source code.
  */
 
-#![feature(macro_rules)]
-
 extern crate getopts;
 extern crate libc;
 
-use std::io::fs::{mod, PathExtensions};
+use std::io::fs::{self, PathExtensions};
 use std::io::FilePermission;
 use std::num::from_str_radix;
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME: &'static str = "mkdir";
@@ -27,7 +27,7 @@ static VERSION: &'static str = "1.0.0";
 /**
  * Handles option parsing
  */
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
 
     let opts = [
         // Linux-specific options, not implemented
@@ -94,7 +94,7 @@ fn print_help(opts: &[getopts::OptGroup]) {
 /**
  * Create the list of new directories
  */
-fn exec(dirs: Vec<String>, mk_parents: bool, mode: FilePermission, verbose: bool) -> Result<(), int> {
+fn exec(dirs: Vec<String>, mk_parents: bool, mode: FilePermission, verbose: bool) -> Result<(), isize> {
     let mut result = Ok(());
 
     let mut parent_dirs = Vec::new();

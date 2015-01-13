@@ -1,4 +1,5 @@
-#![crate_name= "uutrue"]
+#![crate_name= "true"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -9,6 +10,6 @@
  * file that was distributed with this source code.
  */
 
-pub fn uumain(_: Vec<String>) -> int {
+pub fn uumain(_: Vec<String>) -> isize {
     0
 }

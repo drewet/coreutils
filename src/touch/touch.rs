@@ -1,5 +1,5 @@
 #![crate_name = "touch"]
-#![feature(macro_rules)]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -17,12 +17,13 @@ use std::io::File;
 use std::io::fs::PathExtensions;
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME: &'static str = "touch";
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let opts = [
         getopts::optflag("a", "",               "change only the access time"),
         getopts::optflag("c", "no-create",      "do not create any files"),

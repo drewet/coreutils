@@ -1,4 +1,5 @@
 #![crate_name = "tsort"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -10,8 +11,6 @@
  * file that was distributed with this source code.
  */
 
-#![feature(macro_rules)]
-
 extern crate getopts;
 extern crate libc;
 
@@ -19,12 +18,13 @@ use std::io;
 use std::collections::{HashSet, HashMap};
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME: &'static str = "tsort";
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let opts = [
         getopts::optflag("h", "help", "display this help and exit"),
         getopts::optflag("V", "version", "output version information and exit"),
@@ -81,7 +81,7 @@ pub fn uumain(args: Vec<String>) -> int {
     loop {
         match reader.read_line() {
             Ok(line) => {
-                let ab: Vec<&str> = line.as_slice().trim_right_chars('\n').split(' ').collect();
+                let ab: Vec<&str> = line.as_slice().trim_right_matches('\n').split(' ').collect();
                 if ab.len() > 2 {
                     crash!(1, "{}: input contains an odd number of tokens", input);
                 }
@@ -160,7 +160,7 @@ impl Graph {
         }
 
         while !start_nodes.is_empty() {
-            let n = start_nodes.remove(0).unwrap();
+            let n = start_nodes.remove(0);
 
             self.result.push(n.clone());
 

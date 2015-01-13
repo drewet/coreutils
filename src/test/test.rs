@@ -1,4 +1,5 @@
-#![crate_name = "uutest"]
+#![crate_name = "test"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -12,13 +13,14 @@
 extern crate libc;
 
 use std::collections::HashMap;
+use std::ffi::CString;
 use std::os::{args_as_bytes};
 use std::str::{from_utf8};
 
 static NAME: &'static str = "test";
 
 // TODO: decide how to handle non-UTF8 input for all the utils
-pub fn uumain(_: Vec<String>) -> int {
+pub fn uumain(_: Vec<String>) -> isize {
     let args = args_as_bytes();
     let args: Vec<&[u8]> = args.iter().map(|a| a.as_slice()).collect();
     if args.len() == 0 {
@@ -38,7 +40,7 @@ pub fn uumain(_: Vec<String>) -> int {
         _ => args.slice(1, args.len()),
     };
     let mut error = false;
-    let retval = 1 - parse_expr(args, &mut error) as int;
+    let retval = 1 - parse_expr(args, &mut error) as isize;
     if error {
         2
     } else {
@@ -159,7 +161,7 @@ fn dispatch(args: &mut &[&[u8]], error: &mut bool) -> bool {
     val
 }
 
-fn dispatch_two(args: &mut &[&[u8]], error: &mut bool) -> (bool, uint) {
+fn dispatch_two(args: &mut &[&[u8]], error: &mut bool) -> (bool, usize) {
     let val = two(*args, error);
     if *error {
         *error = false;
@@ -169,7 +171,7 @@ fn dispatch_two(args: &mut &[&[u8]], error: &mut bool) -> (bool, uint) {
     }
 }
 
-fn dispatch_three(args: &mut &[&[u8]], error: &mut bool) -> (bool, uint) {
+fn dispatch_three(args: &mut &[&[u8]], error: &mut bool) -> (bool, usize) {
     let val = three(*args, error);
     if *error {
         *error = false;
@@ -179,7 +181,7 @@ fn dispatch_three(args: &mut &[&[u8]], error: &mut bool) -> (bool, uint) {
     }
 }
 
-fn dispatch_four(args: &mut &[&[u8]], error: &mut bool) -> (bool, uint) {
+fn dispatch_four(args: &mut &[&[u8]], error: &mut bool) -> (bool, usize) {
     let val = four(*args, error);
     if *error {
         *error = false;
@@ -225,7 +227,7 @@ fn parse_expr_helper<'a>(hashmap: &HashMap<&'a [u8], Precedence>,
         *error = true;
         &min_prec
     });
-    while !*error && args.len() > 0 && prec as uint >= min_prec as uint {
+    while !*error && args.len() > 0 && prec as usize >= min_prec as usize {
         let op = args[0];
         *args = (*args).slice_from(1);
         let mut rhs = dispatch(args, error);
@@ -234,7 +236,7 @@ fn parse_expr_helper<'a>(hashmap: &HashMap<&'a [u8], Precedence>,
                 *error = true;
                 &min_prec
             });
-            if subprec as uint <= prec as uint || *error {
+            if subprec as usize <= prec as usize || *error {
                 break;
             }
             rhs = parse_expr_helper(hashmap, args, rhs, subprec, error);
@@ -303,7 +305,7 @@ fn setup_hashmap<'a>() -> HashMap<&'a [u8], Precedence> {
     hashmap
 }
 
-#[deriving(Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 enum PathCondition {
     BlockSpecial,
     CharacterSpecial,
@@ -334,19 +336,19 @@ fn path(path: &[u8], cond: PathCondition) -> bool {
         Write   = 0o2,
         Execute = 0o1,
     }
-    let perm = |stat: stat, p: Permission| {
+    let perm = |&: stat: stat, p: Permission| {
         use libc::{getgid, getuid};
         let (uid, gid) = unsafe { (getuid(), getgid()) };
         if uid == stat.st_uid {
-            stat.st_mode & (p as mode_t << 6) != 0
+            stat.st_mode & ((p as mode_t) << 6) != 0
         } else if gid == stat.st_gid {
-            stat.st_mode & (p as mode_t << 3) != 0
+            stat.st_mode & ((p as mode_t) << 3) != 0
         } else {
-            stat.st_mode & (p as mode_t << 0) != 0
+            stat.st_mode & ((p as mode_t) << 0) != 0
         }
     };
 
-    let path = unsafe { path.to_c_str_unchecked() };
+    let path = CString::from_slice(path);
     let mut stat = unsafe { std::mem::zeroed() };
     if cond == PathCondition::SymLink {
         if unsafe { lstat(path.as_ptr(), &mut stat) } == 0 {

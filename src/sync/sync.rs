@@ -1,4 +1,6 @@
-#![crate_name = "uusync"]
+#![crate_name = "sync"]
+#![allow(unstable)]
+
 /*
  * This file is part of the uutils coreutils package.
  *
@@ -10,14 +12,12 @@
 
  /* Last synced with: sync (GNU coreutils) 8.13 */
 
- #![feature(macro_rules)]
-
 extern crate getopts;
 extern crate libc;
 
 use getopts::{optflag, getopts, usage};
 
-#[path = "../common/util.rs"] mod util;
+#[path = "../common/util.rs"] #[macro_use] mod util;
 
 static NAME: &'static str = "sync";
 static VERSION: &'static str = "1.0.0";
@@ -30,7 +30,7 @@ mod platform {
         fn sync() -> libc::c_void;
     }
 
-    pub unsafe fn do_sync() -> int {
+    pub unsafe fn do_sync() -> isize {
         sync();
         0
     }
@@ -88,7 +88,7 @@ mod platform {
 
     #[allow(unused_unsafe)]
     unsafe fn find_first_volume() -> (String, *const libc::c_void) {
-        let mut name: [libc::c_char, ..260] = mem::uninitialized(); // MAX_PATH
+        let mut name: [libc::c_char; 260] = mem::uninitialized(); // MAX_PATH
         match FindFirstVolumeA(name.as_mut_ptr(),
                                name.len() as libc::uint32_t) {
             _x if _x == -1 as *const libc::c_void => { // INVALID_HANDLE_VALUE
@@ -104,9 +104,9 @@ mod platform {
     unsafe fn find_all_volumes() -> Vec<String> {
         match find_first_volume() {
             (first_volume, next_volume_handle) => {
-                let mut volumes = Vec::from_elem(1, first_volume);
+                let mut volumes = vec![first_volume];
                 loop {
-                    let mut name: [libc::c_char, ..260] = mem::uninitialized(); // MAX_PATH
+                    let mut name: [libc::c_char; 260] = mem::uninitialized(); // MAX_PATH
                     match FindNextVolumeA(next_volume_handle,
                                           name.as_mut_ptr(),
                                           name.len() as libc::uint32_t) {
@@ -140,7 +140,7 @@ mod platform {
     }
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = &args[0];
 
     let options = [
@@ -163,7 +163,7 @@ pub fn uumain(args: Vec<String>) -> int {
         return 0
     }
 
-    uusync();
+    sync();
     0
 }
 
@@ -179,7 +179,7 @@ fn help(program: &str, options: &[getopts::OptGroup]) {
     print!("{}", usage("Force changed blocks to disk, update the super block.", options));
 }
 
-fn uusync() -> int {
+fn sync() -> isize {
     unsafe {
         platform::do_sync()
     }

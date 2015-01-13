@@ -1,6 +1,5 @@
 #![crate_name = "cp"]
-#![feature(macro_rules)]
-#![feature(phase)]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -12,7 +11,7 @@
  */
 
 extern crate getopts;
-#[phase(plugin, link)] extern crate log;
+#[macro_use] extern crate log;
 
 use std::os;
 use std::io;
@@ -24,7 +23,7 @@ use getopts::{
     usage,
 };
 
-#[deriving(Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 pub enum Mode {
     Copy,
     Help,
@@ -33,7 +32,7 @@ pub enum Mode {
 
 impl Copy for Mode {}
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let opts = [
         optflag("h", "help", "display this help and exit"),
         optflag("", "version", "output version information and exit"),

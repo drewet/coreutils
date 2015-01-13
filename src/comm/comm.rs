@@ -1,4 +1,5 @@
 #![crate_name = "comm"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -11,7 +12,7 @@
 
 extern crate getopts;
 
-use std::cmp::Ord;
+use std::cmp::Ordering;
 use std::io::{BufferedReader, IoResult, print};
 use std::io::fs::File;
 use std::io::stdio::{stdin, StdinReader};
@@ -20,7 +21,7 @@ use std::path::Path;
 static NAME : &'static str = "comm";
 static VERSION : &'static str = "1.0.0";
 
-fn mkdelim(col: uint, opts: &getopts::Matches) -> String {
+fn mkdelim(col: usize, opts: &getopts::Matches) -> String {
     let mut s = String::new();
     let delim = match opts.opt_str("output-delimiter") {
         Some(d) => d.clone(),
@@ -52,41 +53,41 @@ enum LineReader {
 impl LineReader {
     fn read_line(&mut self) -> IoResult<String> {
         match self {
-            &LineReader::Stdin(ref mut r)  => r.read_line(),
-            &LineReader::FileIn(ref mut r) => r.read_line(),
+            &mut LineReader::Stdin(ref mut r)  => r.read_line(),
+            &mut LineReader::FileIn(ref mut r) => r.read_line(),
         }
     }
 }
 
 fn comm(a: &mut LineReader, b: &mut LineReader, opts: &getopts::Matches) {
 
-    let delim = Vec::from_fn(4, |col| mkdelim(col, opts));
+    let delim : Vec<String> = range(0, 4).map(|col| mkdelim(col, opts)).collect();
 
     let mut ra = a.read_line();
     let mut rb = b.read_line();
 
     while ra.is_ok() || rb.is_ok() {
         let ord = match (ra.clone(), rb.clone()) {
-            (Err(_), Ok(_))  => Greater,
-            (Ok(_) , Err(_)) => Less,
+            (Err(_), Ok(_))  => Ordering::Greater,
+            (Ok(_) , Err(_)) => Ordering::Less,
             (Ok(s0), Ok(s1)) => s0.cmp(&s1),
             _ => unreachable!(),
         };
 
         match ord {
-            Less => {
+            Ordering::Less => {
                 if !opts.opt_present("1") {
                     print!("{}{}", delim[1], ra.map(ensure_nl).unwrap());
                 }
                 ra = a.read_line();
             }
-            Greater => {
+            Ordering::Greater => {
                 if !opts.opt_present("2") {
                     print!("{}{}", delim[2], rb.map(ensure_nl).unwrap());
                 }
                 rb = b.read_line();
             }
-            Equal => {
+            Ordering::Equal => {
                 if !opts.opt_present("3") {
                     print!("{}{}", delim[3], ra.map(ensure_nl).unwrap());
                 }
@@ -107,7 +108,7 @@ fn open_file(name: &str) -> IoResult<LineReader> {
     }
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let opts = [
         getopts::optflag("1", "", "suppress column 1 (lines uniq to FILE1)"),
         getopts::optflag("2", "", "suppress column 2 (lines uniq to FILE2)"),

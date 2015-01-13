@@ -1,4 +1,6 @@
 #![crate_name = "tail"]
+#![allow(unstable)]
+
 /*
  * This file is part of the uutils coreutils package.
  *
@@ -9,11 +11,9 @@
  *
  */
 
-#![feature(macro_rules)]
-
 extern crate getopts;
 
-use std::char::UnicodeChar;
+use std::char::CharExt;
 use std::io::{stdin, stdout};
 use std::io::{BufferedReader, BytesReader};
 use std::io::fs::File;
@@ -25,16 +25,17 @@ use std::io::timer::sleep;
 use std::time::duration::Duration;
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME: &'static str = "tail";
 static VERSION: &'static str = "0.0.1";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let mut beginning = false;
     let mut lines = true;
-    let mut byte_count = 0u;
-    let mut line_count = 10u;
+    let mut byte_count = 0us;
+    let mut line_count = 10us;
     let mut sleep_msec = 1000u64;
 
     // handle obsolete -number syntax
@@ -72,7 +73,7 @@ pub fn uumain(args: Vec<String>) -> int {
     if follow {
         match given_options.opt_str("s") {
             Some(n) => {
-                let parsed: Option<u64> = from_str(n.as_slice());
+                let parsed: Option<u64> = n.parse();
                 match parsed {
                     Some(m) => { sleep_msec = m * 1000 }
                     None => {}
@@ -148,33 +149,33 @@ pub fn uumain(args: Vec<String>) -> int {
     0
 }
 
-fn parse_size(mut size_slice: &str) -> Option<uint> {
+fn parse_size(mut size_slice: &str) -> Option<usize> {
     let mut base =
         if size_slice.len() > 0 && size_slice.char_at(size_slice.len() - 1) == 'B' {
             size_slice = size_slice.slice_to(size_slice.len() - 1);
-            1000u
+            1000us
         } else {
-            1024u
+            1024us
         };
     let exponent = 
         if size_slice.len() > 0 {
             let mut has_suffix = true;
             let exp = match size_slice.char_at(size_slice.len() - 1) {
-                'K' => 1u,
-                'M' => 2u,
-                'G' => 3u,
-                'T' => 4u,
-                'P' => 5u,
-                'E' => 6u,
-                'Z' => 7u,
-                'Y' => 8u,
+                'K' => 1us,
+                'M' => 2us,
+                'G' => 3us,
+                'T' => 4us,
+                'P' => 5us,
+                'E' => 6us,
+                'Z' => 7us,
+                'Y' => 8us,
                 'b' => {
-                    base = 512u;
-                    1u
+                    base = 512us;
+                    1us
                 }
                 _ => {
                     has_suffix = false;
-                    0u
+                    0us
                 }
             };
             if has_suffix {
@@ -182,18 +183,18 @@ fn parse_size(mut size_slice: &str) -> Option<uint> {
             }
             exp
         } else {
-            0u
+            0us
         };
 
-    let mut multiplier = 1u;
-    for _ in range(0u, exponent) {
+    let mut multiplier = 1us;
+    for _ in range(0us, exponent) {
         multiplier *= base;
     }
-    if base == 1000u && exponent == 0u {
+    if base == 1000us && exponent == 0us {
         // sole B is not a valid suffix
         None
     } else {
-        let value = from_str(size_slice);
+        let value = size_slice.parse();
         match value {
             Some(v) => Some(multiplier * v),
             None => None
@@ -205,7 +206,7 @@ fn parse_size(mut size_slice: &str) -> Option<uint> {
 //
 // In case is found, the options vector will get rid of that object so that
 // getopts works correctly.
-fn obsolete(options: &[String]) -> (Vec<String>, Option<uint>) {
+fn obsolete(options: &[String]) -> (Vec<String>, Option<usize>) {
     let mut options: Vec<String> = options.to_vec();
     let mut a = 0;
     let b = options.len();
@@ -218,12 +219,12 @@ fn obsolete(options: &[String]) -> (Vec<String>, Option<uint>) {
             let len = current.len();
             for pos in range(1, len) {
                 // Ensure that the argument is only made out of digits
-                if !UnicodeChar::is_numeric(current[pos] as char) { break; }
+                if !(current[pos] as char).is_numeric() { break; }
 
                 // If this is the last number
                 if pos == len - 1 {
                     options.remove(a);
-                    let number: Option<uint> = from_str(from_utf8(current.slice(1,len)).unwrap());
+                    let number: Option<usize> = from_utf8(current.slice(1,len)).unwrap().parse();
                     return (options, Some(number.unwrap()));
                 }
             }
@@ -244,7 +245,7 @@ macro_rules! tail_impl (
         let mut data = $reader.$kindfn().skip(
             if $beginning {
                 let temp = $count;
-                $count = ::std::uint::MAX;
+                $count = ::std::usize::MAX;
                 temp - 1
             } else {
                 0
@@ -268,7 +269,7 @@ macro_rules! tail_impl (
     })
 );
 
-fn tail<T: Reader>(reader: &mut BufferedReader<T>, mut line_count: uint, mut byte_count: uint, beginning: bool, lines: bool, follow: bool, sleep_msec: u64) {
+fn tail<T: Reader>(reader: &mut BufferedReader<T>, mut line_count: usize, mut byte_count: usize, beginning: bool, lines: bool, follow: bool, sleep_msec: u64) {
     if lines {
         tail_impl!(String, lines, print_string, reader, line_count, beginning);
     } else {

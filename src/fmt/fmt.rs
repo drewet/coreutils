@@ -1,4 +1,6 @@
 #![crate_name = "fmt"]
+#![allow(unstable)]
+
 /*
  * This file is part of `fmt` from the uutils coreutils package.
  *
@@ -8,10 +10,11 @@
  * file that was distributed with this source code.
  */
 
-#![feature(macro_rules)]
+#![feature(box_syntax)]
 
 extern crate core;
 extern crate getopts;
+extern crate unicode;
 
 use std::cmp;
 use std::io::{BufferedReader, BufferedWriter, File, IoResult};
@@ -19,7 +22,6 @@ use std::io::stdio::{stdin_raw, stdout_raw};
 use linebreak::break_lines;
 use parasplit::ParagraphStream;
 
-#[macro_export]
 macro_rules! silent_unwrap(
     ($exp:expr) => (
         match $exp {
@@ -28,7 +30,9 @@ macro_rules! silent_unwrap(
         }
     )
 );
+
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 mod linebreak;
 mod parasplit;
@@ -50,12 +54,12 @@ struct FmtOptions {
     xanti_prefix    : bool,
     uniform         : bool,
     quick           : bool,
-    width           : uint,
-    goal            : uint,
-    tabwidth        : uint,
+    width           : usize,
+    goal            : usize,
+    tabwidth        : usize,
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
 
     let opts = [
         getopts::optflag("c", "crown-margin", "First and second line of paragraph may have different indentations, in which case the first line's indentation is preserved, and each subsequent line's indentation matches the second line."),
@@ -141,7 +145,7 @@ pub fn uumain(args: Vec<String>) -> int {
     match matches.opt_str("w") {
         Some(s) => {
             fmt_opts.width =
-                match from_str(s.as_slice()) {
+                match s.parse::<usize>() {
                     Some(t) => t,
                     None => { crash!(1, "Invalid WIDTH specification: `{}'", s); }
                 };
@@ -153,7 +157,7 @@ pub fn uumain(args: Vec<String>) -> int {
     match matches.opt_str("g") {
         Some(s) => {
             fmt_opts.goal =
-                match from_str(s.as_slice()) {
+                match s.parse::<usize>() {
                     Some(t) => t,
                     None => { crash!(1, "Invalid GOAL specification: `{}'", s); }
                 };
@@ -169,7 +173,7 @@ pub fn uumain(args: Vec<String>) -> int {
     match matches.opt_str("T") {
         Some(s) => {
             fmt_opts.tabwidth =
-                match from_str(s.as_slice()) {
+                match s.parse::<usize>() {
                     Some(t) => t,
                     None => { crash!(1, "Invalid TABWIDTH specification: `{}'", s); }
                 };

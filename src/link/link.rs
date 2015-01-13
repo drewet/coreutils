@@ -1,5 +1,5 @@
 #![crate_name = "link"]
-#![feature(macro_rules)]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -16,12 +16,13 @@ use std::io::fs::link;
 use std::path::Path;
 
 #[path="../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME : &'static str = "link";
 static VERSION : &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let opts = [
         getopts::optflag("h", "help", "display this help and exit"),
         getopts::optflag("V", "version", "output version information and exit"),

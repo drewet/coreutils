@@ -1,4 +1,5 @@
 #![crate_name = "expand"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -9,31 +10,32 @@
  * file that was distributed with this source code.
  */
 
-#![feature(macro_rules)]
+#![feature(box_syntax)]
 
 extern crate getopts;
 extern crate libc;
 
 use std::io;
-use std::str::from_str;
+use std::str::StrExt;
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 static NAME: &'static str = "expand";
 static VERSION: &'static str = "0.0.1";
 
-static DEFAULT_TABSTOP: uint = 8;
+static DEFAULT_TABSTOP: usize = 8;
 
-fn tabstops_parse(s: String) -> Vec<uint> {
+fn tabstops_parse(s: String) -> Vec<usize> {
     let words = s.as_slice().split(',').collect::<Vec<&str>>();
 
     let nums = words.into_iter()
-        .map(|sn| from_str::<uint>(sn)
+        .map(|sn| sn.parse::<usize>()
             .unwrap_or_else(
                 || crash!(1, "{}\n", "tab size contains invalid character(s)"))
             )
-        .collect::<Vec<uint>>();
+        .collect::<Vec<usize>>();
 
     if nums.iter().any(|&n| n == 0) {
         crash!(1, "{}\n", "tab size cannot be 0");
@@ -49,7 +51,7 @@ fn tabstops_parse(s: String) -> Vec<uint> {
 
 struct Options {
     files: Vec<String>,
-    tabstops: Vec<uint>,
+    tabstops: Vec<usize>,
     iflag: bool
 }
 
@@ -73,7 +75,7 @@ impl Options {
     }
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let opts = [
         getopts::optflag("i", "initial", "do not convert tabs after non blanks"),
         getopts::optopt("t", "tabs", "have tabs NUMBER characters apart, not 8", "NUMBER"),
@@ -118,7 +120,7 @@ fn open(path: String) -> io::BufferedReader<Box<Reader+'static>> {
     }
 }
 
-fn to_next_stop(tabstops: &[uint], col: uint) -> uint {
+fn to_next_stop(tabstops: &[usize], col: usize) -> usize {
     match tabstops.as_slice() {
         [tabstop] => tabstop - col % tabstop,
         tabstops => match tabstops.iter().skip_while(|&t| *t <= col).next() {

@@ -9,33 +9,33 @@
 
 use std;
 
-#[deriving(PartialEq,Eq,PartialOrd,Ord,Show)]
+#[derive(PartialEq,Eq,PartialOrd,Ord,Show)]
 pub struct Range {
-    pub low: uint,
-    pub high: uint,
+    pub low: usize,
+    pub high: usize,
 }
 
 impl std::str::FromStr for Range {
     fn from_str(s: &str) -> Option<Range> {
-        use std::uint::MAX;
+        use std::usize::MAX;
 
         let mut parts = s.splitn(1, '-');
 
         match (parts.next(), parts.next()) {
             (Some(nm), None) => {
-                from_str::<uint>(nm).and_then(|nm| if nm > 0 { Some(nm) } else { None })
+                nm.parse::<usize>().and_then(|nm| if nm > 0 { Some(nm) } else { None })
                                     .map(|nm| Range { low: nm, high: nm })
             }
             (Some(n), Some(m)) if m.len() == 0 => {
-                from_str::<uint>(n).and_then(|low| if low > 0 { Some(low) } else { None })
+                n.parse::<usize>().and_then(|low| if low > 0 { Some(low) } else { None })
                                    .map(|low| Range { low: low, high: MAX })
             }
             (Some(n), Some(m)) if n.len() == 0 => {
-                from_str::<uint>(m).and_then(|high| if high >= 1 { Some(high) } else { None })
+                m.parse::<usize>().and_then(|high| if high >= 1 { Some(high) } else { None })
                                    .map(|high| Range { low: 1, high: high })
             }
             (Some(n), Some(m)) => {
-                match (from_str::<uint>(n), from_str::<uint>(m)) {
+                match (n.parse::<usize>(), m.parse::<usize>()) {
                     (Some(low), Some(high)) if low > 0 && low <= high => {
                         Some(Range { low: low, high: high })
                     }
@@ -51,10 +51,10 @@ impl Range {
     pub fn from_list(list: &str) -> Result<Vec<Range>, String> {
         use std::cmp::max;
 
-        let mut ranges = vec!();
+        let mut ranges : Vec<Range> = vec!();
 
         for item in list.split(',') {
-            match from_str::<Range>(item) {
+            match std::str::FromStr::from_str(item) {
                 Some(range_item) => ranges.push(range_item),
                 None => return Err(format!("range '{}' was invalid", item))
             }
@@ -67,7 +67,7 @@ impl Range {
             let j = i + 1;
 
             while j < ranges.len() && ranges[j].low <= ranges[i].high {
-                let j_high = ranges.remove(j).unwrap().high;
+                let j_high = ranges.remove(j).high;
                 ranges[i].high = max(ranges[i].high, j_high);
             }
         }
@@ -77,7 +77,7 @@ impl Range {
 }
 
 pub fn complement(ranges: &Vec<Range>) -> Vec<Range> {
-    use std::uint;
+    use std::usize;
 
     let mut complements = Vec::with_capacity(ranges.len() + 1);
 
@@ -97,10 +97,10 @@ pub fn complement(ranges: &Vec<Range>) -> Vec<Range> {
                 }
             }
             (Some(last), None) => {
-                if last.high < uint::MAX {
+                if last.high < usize::MAX {
                     complements.push(Range {
                                         low: last.high + 1,
-                                        high: uint::MAX
+                                        high: usize::MAX
                                      });
                 }
             }

@@ -1,4 +1,5 @@
 #![crate_name = "logname"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -13,25 +14,29 @@
 
 #![allow(non_camel_case_types)]
 
-#![feature(macro_rules)]
-
 extern crate getopts;
 extern crate libc;
 
+use std::ffi::c_str_to_bytes;
 use std::io::print;
 use libc::c_char;
 
-#[path = "../common/util.rs"] mod util;
+#[path = "../common/util.rs"] #[macro_use] mod util;
 
 extern {
     // POSIX requires using getlogin (or equivalent code)
     pub fn getlogin() -> *const libc::c_char;
 }
 
-unsafe fn get_userlogin() -> String {
-    let login: *const libc::c_char = getlogin();
-
-    String::from_raw_buf(login as *const u8)
+fn get_userlogin() -> Option<String> {
+    unsafe {
+            let login: *const libc::c_char = getlogin();
+            if login.is_null() {
+                    None
+            } else {
+                    Some(String::from_utf8_lossy(c_str_to_bytes(&login)).to_string())
+            }
+    }
 }
 
 static NAME: &'static str = "logname";
@@ -41,7 +46,7 @@ fn version() {
     println!("{} {}", NAME, VERSION);
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = args[0].clone();
 
     //
@@ -77,8 +82,8 @@ pub fn uumain(args: Vec<String>) -> int {
 }
 
 fn exec() {
-    unsafe {
-        let userlogin = get_userlogin();
-        println!("{}", userlogin);
-    }
+        match get_userlogin() {
+                Some(userlogin) => println!("{}", userlogin),
+                None => println!("{}: no login name", NAME)
+        }
 }

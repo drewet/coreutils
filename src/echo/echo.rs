@@ -1,5 +1,5 @@
-#![feature(macro_rules)]
 #![crate_name = "echo"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -24,15 +24,15 @@ mod util;
 static NAME: &'static str = "echo";
 static VERSION: &'static str = "1.0.0";
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct EchoOptions {
     newline: bool,
     escape: bool
 }
 
 #[inline(always)]
-fn to_char(bytes: &Vec<u8>, base: uint) -> char {
-    from_str_radix::<uint>(from_utf8(bytes.as_slice()).unwrap(), base).unwrap() as u8 as char
+fn to_char(bytes: &Vec<u8>, base: usize) -> char {
+    from_str_radix::<usize>(from_utf8(bytes.as_slice()).unwrap(), base).unwrap() as u8 as char
 }
 
 #[inline(always)]
@@ -52,19 +52,19 @@ fn isodigit(c: u8) -> bool {
     }
 }
 
-fn convert_str(string: &[u8], index: uint, base: uint) -> (char, uint) {
-    let (max_digits, is_legal_digit) : (uint, fn(u8) -> bool) = match base {
-        8u => (3, isodigit),
-        16u => (2, isxdigit),
+fn convert_str(string: &[u8], index: usize, base: usize) -> (char, usize) {
+    let (max_digits, is_legal_digit) : (usize, fn(u8) -> bool) = match base {
+        8us => (3, isodigit),
+        16us => (2, isxdigit),
         _ => panic!(),
     };
 
     let mut bytes = vec!();
-    for offset in range(0u, max_digits) {
-        if string.len() <= index + offset as uint {
+    for offset in range(0us, max_digits) {
+        if string.len() <= index + offset as usize {
             break;
         }
-        let c = string[index + offset as uint];
+        let c = string[index + offset as usize];
         if is_legal_digit(c) {
             bytes.push(c as u8);
         } else {
@@ -163,7 +163,7 @@ fn print_version() {
     println!("echo version: {}", VERSION);
 }
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let mut options = EchoOptions {
         newline: false,
         escape: false
@@ -202,7 +202,7 @@ pub fn uumain(args: Vec<String>) -> int {
                                 't' => print!("\t"),
                                 'v' => print!("\x0B"),
                                 'x' => {
-                                    let (c, num_char_used) = convert_str(string.as_bytes(), index + 1, 16u);
+                                    let (c, num_char_used) = convert_str(string.as_bytes(), index + 1, 16us);
                                     if num_char_used == 0 {
                                         print!("\\x");
                                     } else {
@@ -213,7 +213,7 @@ pub fn uumain(args: Vec<String>) -> int {
                                     }
                                 },
                                 '0' => {
-                                    let (c, num_char_used) = convert_str(string.as_bytes(), index + 1, 8u);
+                                    let (c, num_char_used) = convert_str(string.as_bytes(), index + 1, 8us);
                                     if num_char_used == 0 {
                                         print!("\0");
                                     } else {
@@ -224,7 +224,7 @@ pub fn uumain(args: Vec<String>) -> int {
                                     }
                                 }
                                 _ => {
-                                    let (esc_c, num_char_used) = convert_str(string.as_bytes(), index, 8u);
+                                    let (esc_c, num_char_used) = convert_str(string.as_bytes(), index, 8us);
                                     if num_char_used == 0 {
                                         print!("\\{}", c);
                                     } else {

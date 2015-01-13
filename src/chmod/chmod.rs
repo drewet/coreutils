@@ -1,4 +1,5 @@
 #![crate_name = "chmod"]
+#![allow(unstable)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -9,15 +10,15 @@
  * file that was distributed with this source code.
  */
 
-#![feature(macro_rules, phase)]
-
 #![allow(unused_variables)]  // only necessary while the TODOs still exist
+#![feature(plugin)]
 
 extern crate getopts;
 extern crate libc;
 extern crate regex;
-#[phase(plugin)] extern crate regex_macros;
+#[plugin] #[no_link] extern crate regex_macros;
 
+use std::ffi::CString;
 use std::io::fs;
 use std::io::fs::PathExtensions;
 use std::io::IoError;
@@ -26,12 +27,13 @@ use std::num::from_str_radix;
 use regex::Regex;
 
 #[path = "../common/util.rs"]
+#[macro_use]
 mod util;
 
 const NAME: &'static str = "chmod";
 const VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> int {
+pub fn uumain(args: Vec<String>) -> isize {
     let program = args[0].clone();
 
     let opts = [
@@ -89,7 +91,7 @@ Each MODE is of the form '[ugoa]*([-+=]([rwxXst]*|[ugo]))+|[-+=]?[0-7]+'.",
         });
         let cmode =
             if fmode.is_none() {
-                let mode = matches.free.remove(0).unwrap();  // there are at least two elements
+                let mode = matches.free.remove(0);
                 match verify_mode(mode.as_slice()) {
                     Ok(_) => Some(mode),
                     Err(f) => {
@@ -144,7 +146,7 @@ fn verify_mode(mode: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn chmod(files: Vec<String>, changes: bool, quiet: bool, verbose: bool, preserve_root: bool, recursive: bool, fmode: Option<libc::mode_t>, cmode: Option<&String>) -> Result<(), int> {
+fn chmod(files: Vec<String>, changes: bool, quiet: bool, verbose: bool, preserve_root: bool, recursive: bool, fmode: Option<libc::mode_t>, cmode: Option<&String>) -> Result<(), isize> {
     let mut r = Ok(());
 
     for filename in files.iter() {
@@ -180,8 +182,8 @@ fn chmod(files: Vec<String>, changes: bool, quiet: bool, verbose: bool, preserve
     r
 }
 
-fn chmod_file(file: &Path, name: &str, changes: bool, quiet: bool, verbose: bool, fmode: Option<libc::mode_t>, cmode: Option<&String>) -> Result<(), int> {
-    let path = name.to_c_str();
+fn chmod_file(file: &Path, name: &str, changes: bool, quiet: bool, verbose: bool, fmode: Option<libc::mode_t>, cmode: Option<&String>) -> Result<(), isize> {
+    let path = CString::from_slice(name.as_bytes());
     match fmode {
         Some(mode) => {
             if unsafe { libc::chmod(path.as_ptr(), mode) } == 0 {
@@ -211,7 +213,7 @@ fn chmod_file(file: &Path, name: &str, changes: bool, quiet: bool, verbose: bool
                     if levels.len() == 0 {
                         levels = "a";
                     }
-                    let change_str = cap.at(3).to_string() + "+";
+                    let change_str = cap.at(3).unwrap().to_string() + "+";
                     let change = change_str.as_slice();
                     let mut action = change.char_at(0);
                     let mut rwx = 0;
