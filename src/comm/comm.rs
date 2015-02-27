@@ -1,5 +1,5 @@
 #![crate_name = "comm"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -13,10 +13,10 @@
 extern crate getopts;
 
 use std::cmp::Ordering;
-use std::io::{BufferedReader, IoResult, print};
-use std::io::fs::File;
-use std::io::stdio::{stdin, StdinReader};
-use std::path::Path;
+use std::old_io::{BufferedReader, IoResult, print};
+use std::old_io::fs::File;
+use std::old_io::stdio::{stdin, StdinReader};
+use std::old_path::Path;
 
 static NAME : &'static str = "comm";
 static VERSION : &'static str = "1.0.0";
@@ -102,13 +102,13 @@ fn open_file(name: &str) -> IoResult<LineReader> {
     match name {
         "-" => Ok(LineReader::Stdin(stdin())),
         _   => {
-            let f = try!(std::io::File::open(&Path::new(name)));
+            let f = try!(std::old_io::File::open(&Path::new(name)));
             Ok(LineReader::FileIn(BufferedReader::new(f)))
         }
     }
 }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let opts = [
         getopts::optflag("1", "", "suppress column 1 (lines uniq to FILE1)"),
         getopts::optflag("2", "", "suppress column 2 (lines uniq to FILE2)"),

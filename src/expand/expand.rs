@@ -1,5 +1,5 @@
 #![crate_name = "expand"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -15,7 +15,7 @@
 extern crate getopts;
 extern crate libc;
 
-use std::io;
+use std::old_io as io;
 use std::str::StrExt;
 
 #[path = "../common/util.rs"]
@@ -33,7 +33,7 @@ fn tabstops_parse(s: String) -> Vec<usize> {
     let nums = words.into_iter()
         .map(|sn| sn.parse::<usize>()
             .unwrap_or_else(
-                || crash!(1, "{}\n", "tab size contains invalid character(s)"))
+                |_| crash!(1, "{}\n", "tab size contains invalid character(s)"))
             )
         .collect::<Vec<usize>>();
 
@@ -75,7 +75,7 @@ impl Options {
     }
 }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let opts = [
         getopts::optflag("i", "initial", "do not convert tabs after non blanks"),
         getopts::optopt("t", "tabs", "have tabs NUMBER characters apart, not 8", "NUMBER"),

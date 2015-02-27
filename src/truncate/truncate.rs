@@ -1,5 +1,5 @@
 #![crate_name = "truncate"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -14,8 +14,8 @@ extern crate getopts;
 extern crate libc;
 
 use std::ascii::AsciiExt;
-use std::io::{File, Open, ReadWrite, fs};
-use std::io::fs::PathExtensions;
+use std::old_io::{File, Open, ReadWrite, fs};
+use std::old_io::fs::PathExtensions;
 
 #[path = "../common/util.rs"]
 #[macro_use]
@@ -34,7 +34,7 @@ enum TruncateMode {
 
 static NAME: &'static str = "truncate";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = args[0].clone();
 
     let opts = [
@@ -100,7 +100,7 @@ file based on its current size:
     0
 }
 
-fn truncate(no_create: bool, _: bool, reference: Option<String>, size: Option<String>, filenames: Vec<String>) -> Result<(), isize> {
+fn truncate(no_create: bool, _: bool, reference: Option<String>, size: Option<String>, filenames: Vec<String>) -> Result<(), i32> {
     let (refsize, mode) = match reference {
         Some(rfilename) => {
             let rfile = match File::open(&Path::new(rfilename.clone())) {
@@ -175,20 +175,20 @@ fn parse_size(size: &str) -> (u64, TruncateMode) {
                 let size: &str = size;
                 size
             } else {
-                size.slice_from(1)
+                &size[1..]
             };
         if slice.char_at(slice.len() - 1).is_alphabetic() {
-            slice = slice.slice_to(slice.len() - 1);
+            slice = &slice[..slice.len() - 1];
             if slice.len() > 0 && slice.char_at(slice.len() - 1).is_alphabetic() {
-                slice = slice.slice_to(slice.len() - 1);
+                slice = &slice[..slice.len() - 1];
             }
         }
         slice
     }.to_string();
     let mut number: u64 = match bytes.as_slice().parse() {
-        Some(num) => num,
-        None => {
-            crash!(1, "'{}' is not a valid number.", size)
+        Ok(num) => num,
+        Err(e) => {
+            crash!(1, "'{}' is not a valid number: {}", size, e)
         }
     };
     if size.char_at(size.len() - 1).is_alphabetic() {

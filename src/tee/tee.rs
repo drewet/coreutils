@@ -1,5 +1,5 @@
 #![crate_name = "tee"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -13,16 +13,15 @@
 extern crate getopts;
 #[macro_use] extern crate log;
 
-use std::io::{println, stdin, stdout, Append, File, Truncate, Write};
-use std::io::{IoResult};
-use std::io::util::{copy, NullWriter, MultiWriter};
-use std::os;
+use std::old_io::{println, stdin, stdout, Append, File, Truncate, Write};
+use std::old_io::{IoResult};
+use std::old_io::util::{copy, NullWriter, MultiWriter};
 use getopts::{getopts, optflag, usage};
 
 static NAME: &'static str = "tee";
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     match options(args.as_slice()).and_then(exec) {
         Ok(_) => 0,
         Err(_) => 1
@@ -109,9 +108,9 @@ struct NamedWriter {
 }
 
 impl Writer for NamedWriter {
-    fn write(&mut self, buf: &[u8]) -> IoResult<()> {
+    fn write_all(&mut self, buf: &[u8]) -> IoResult<()> {
         with_path(&*self.path.clone(), || {
-            let val = self.inner.write(buf);
+            let val = self.inner.write_all(buf);
             if val.is_err() {
                 self.inner = Box::new(NullWriter) as Box<Writer>;
             }
@@ -150,5 +149,5 @@ fn with_path<F, T>(path: &Path, mut cb: F) -> IoResult<T> where F: FnMut() -> Io
 }
 
 fn warn(message: &str) {
-    error!("{}: {}", os::args()[0], message);
+    error!("tee: {}", message);
 }

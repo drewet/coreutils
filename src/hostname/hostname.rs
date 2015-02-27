@@ -1,5 +1,5 @@
 #![crate_name = "hostname"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -18,7 +18,7 @@ extern crate getopts;
 extern crate libc;
 
 use std::collections::hash_set::HashSet;
-use std::io::net::addrinfo;
+use std::old_io::net::addrinfo;
 use std::iter::repeat;
 use std::str;
 use getopts::{optflag, getopts, usage};
@@ -43,7 +43,7 @@ extern {
     fn sethostname(name: *const libc::c_char, namelen: libc::size_t) -> libc::c_int;
 }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = &args[0];
 
     let options = [
@@ -132,7 +132,7 @@ fn help_menu(program: &str, options: &[getopts::OptGroup]) {
 }
 
 fn xgethostname() -> String {
-    let namelen = 256us;
+    let namelen = 256usize;
     let mut name : Vec<u8> = repeat(0).take(namelen).collect();
     let err = unsafe {
         gethostname (name.as_mut_ptr() as *mut libc::c_char,
@@ -145,7 +145,7 @@ fn xgethostname() -> String {
 
     let last_char = name.iter().position(|byte| *byte == 0).unwrap_or(namelen);
 
-    str::from_utf8(name.slice_to(last_char)).unwrap().to_string()
+    str::from_utf8(&name[..last_char]).unwrap().to_string()
 }
 
 #[cfg(any(target_os = "macos", target_os = "freebsd"))]

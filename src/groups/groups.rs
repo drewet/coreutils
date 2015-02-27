@@ -1,5 +1,5 @@
 #![crate_name = "groups"]
-#![allow(unstable)]
+#![feature(collections, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -25,7 +25,7 @@ use c_types::{get_pw_from_args, group};
 static NAME: &'static str = "groups";
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = args[0].clone();
 
     let options = [

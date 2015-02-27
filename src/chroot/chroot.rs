@@ -1,5 +1,5 @@
 #![crate_name = "chroot"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, os, old_path, rustc_private, std_misc)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -16,8 +16,8 @@ extern crate libc;
 use getopts::{optflag, optopt, getopts, usage};
 use c_types::{get_pw_from_args, get_group};
 use libc::funcs::posix88::unistd::{execvp, setuid, setgid};
-use std::ffi::{c_str_to_bytes, CString};
-use std::io::fs::PathExtensions;
+use std::ffi::{CStr, CString};
+use std::old_io::fs::PathExtensions;
 use std::iter::FromIterator;
 
 #[path = "../common/util.rs"] #[macro_use] mod util;
@@ -40,7 +40,7 @@ extern {
 static NAME: &'static str = "chroot";
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = &args[0];
 
     let options = [
@@ -89,16 +89,16 @@ pub fn uumain(args: Vec<String>) -> isize {
             };
             vec!(shell, default_option)
         }
-        _ => opts.free.slice(1, opts.free.len()).iter().map(|x| x.as_slice()).collect()
+        _ => opts.free[1..opts.free.len()].iter().map(|x| x.as_slice()).collect()
     };
 
     set_context(&newroot, &opts);
 
     unsafe {
-        let executable = CString::from_slice(command[0].as_bytes()).as_slice_with_nul().as_ptr();
-        let mut command_parts: Vec<*const i8> = command.iter().map(|x| CString::from_slice(x.as_bytes()).as_slice_with_nul().as_ptr()).collect();
+        let executable = CString::new(command[0]).unwrap().as_bytes_with_nul().as_ptr();
+        let mut command_parts: Vec<*const u8> = command.iter().map(|x| CString::new(x.as_bytes()).unwrap().as_bytes_with_nul().as_ptr()).collect();
         command_parts.push(std::ptr::null());
-        execvp(executable as *const libc::c_char, command_parts.as_ptr() as *mut *const libc::c_char) as isize
+        execvp(executable as *const libc::c_char, command_parts.as_ptr() as *mut *const libc::c_char) as i32 
     }
 }
 
@@ -131,7 +131,7 @@ fn enter_chroot(root: &Path) {
     let root_str = root.display();
     std::os::change_dir(root).unwrap();
     let err = unsafe {
-        chroot(CString::from_slice(b".").as_slice_with_nul().as_ptr() as *const libc::c_char)
+        chroot(CString::new(b".").unwrap().as_bytes_with_nul().as_ptr() as *const libc::c_char)
     };
     if err != 0 {
         crash!(1, "cannot chroot to {}: {}", root_str, strerror(err).as_slice())
@@ -196,7 +196,7 @@ fn set_user(user: &str) {
 fn strerror(errno: i32) -> String {
     unsafe {
         let err = libc::funcs::c95::string::strerror(errno) as *const libc::c_char;
-        let bytes= c_str_to_bytes(&err);
+        let bytes= CStr::from_ptr(err).to_bytes();
         String::from_utf8_lossy(bytes).to_string()
     }
 }

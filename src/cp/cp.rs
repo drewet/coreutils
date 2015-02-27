@@ -1,5 +1,5 @@
 #![crate_name = "cp"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, os, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -14,8 +14,8 @@ extern crate getopts;
 #[macro_use] extern crate log;
 
 use std::os;
-use std::io;
-use std::io::fs;
+use std::old_io as io;
+use std::old_io::fs;
 
 use getopts::{
     getopts,
@@ -32,7 +32,7 @@ pub enum Mode {
 
 impl Copy for Mode {}
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let opts = [
         optflag("h", "help", "display this help and exit"),
         optflag("", "version", "output version information and exit"),
@@ -83,7 +83,7 @@ fn copy(matches: getopts::Matches) {
         panic!()
     } else {
         // All but the last argument:
-        matches.free.slice(0, matches.free.len() - 1).iter()
+        matches.free[..matches.free.len() - 1].iter()
             .map(|arg| Path::new(arg.clone())).collect()
     };
     let dest = if matches.free.len() < 2 {
@@ -117,8 +117,7 @@ fn copy(matches: getopts::Matches) {
 
         let io_result = fs::copy(source, &dest);
 
-        if io_result.is_err() {
-            let err = io_result.unwrap_err();
+        if let Err(err) = io_result {
             error!("error: {}", err.to_string());
             panic!();
         }
@@ -142,8 +141,7 @@ fn copy(matches: getopts::Matches) {
 
             let io_result = fs::copy(source, &full_dest);
 
-            if io_result.is_err() {
-                let err = io_result.unwrap_err();
+            if let Err(err) = io_result {
                 error!("error: {}", err.to_string());
                 panic!()
             }

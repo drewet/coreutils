@@ -1,5 +1,5 @@
 #![crate_name = "uptime"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private, std_misc, str_words)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -20,7 +20,7 @@ extern crate "time" as rtime;
 
 use std::ffi::CString;
 use std::mem::transmute;
-use std::io::{print, File};
+use std::old_io::{print, File};
 use std::ptr::null;
 use libc::{time_t, c_double, c_int, c_char};
 use utmpx::*;
@@ -55,7 +55,7 @@ unsafe extern fn utmpxname(_file: *const c_char) -> c_int {
     0
 }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = args[0].clone();
     let opts = [
         getopts::optflag("v", "version", "output version information and exit"),
@@ -108,7 +108,7 @@ fn print_loadavg() {
 #[cfg(unix)]
 fn process_utmpx() -> (Option<time_t>, usize) {
     unsafe {
-        utmpxname(CString::from_slice(DEFAULT_FILE.as_bytes()).as_ptr());
+        utmpxname(CString::new(DEFAULT_FILE).unwrap().as_ptr());
     }
 
     let mut nusers = 0;
@@ -181,8 +181,8 @@ fn get_uptime(boot_time: Option<time_t>) -> i64 {
 
     match uptime_text.as_slice().words().next() {
         Some(s) => match s.replace(".", "").as_slice().parse() {
-                    Some(n) => n,
-                    None => -1
+                    Ok(n) => n,
+                    Err(_) => -1
                    },
         None => -1
     }

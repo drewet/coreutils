@@ -1,5 +1,5 @@
 #![crate_name = "sort"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private, unicode)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -15,8 +15,8 @@
 extern crate getopts;
 
 use std::cmp::Ordering;
-use std::io::{print, File, BufferedReader};
-use std::io::stdio::stdin_raw;
+use std::old_io::{print, File, BufferedReader};
+use std::old_io::stdio::stdin_raw;
 use std::str::Chars;
 
 #[path = "../common/util.rs"]
@@ -29,7 +29,7 @@ static VERSION:  &'static str = "0.0.1";
 static DECIMAL_PT: char = '.';
 static THOUSANDS_SEP: char = ',';
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = args[0].as_slice();
     let opts = [
         getopts::optflag("n", "numeric-sort", "compare according to string numerical value"),
@@ -146,7 +146,7 @@ fn frac_compare(a: &String, b: &String) -> Ordering {
 }
 
 #[inline(always)]
-fn print_sorted<S, T: Iterator<Item=S>>(mut iter: T) where S: std::fmt::String {
+fn print_sorted<S, T: Iterator<Item=S>>(iter: T) where S: std::fmt::Display {
     for line in iter {
         print!("{}", line);
     }
@@ -160,7 +160,7 @@ fn open<'a>(path: &str) -> Option<(Box<Reader + 'a>, bool)> {
         return Some((Box::new(stdin) as Box<Reader>, interactive));
     }
 
-    match File::open(&std::path::Path::new(path)) {
+    match File::open(&std::old_path::Path::new(path)) {
         Ok(f) => Some((Box::new(f) as Box<Reader>, false)),
         Err(e) => {
             show_error!("sort: {0}: {1}", path, e.to_string());

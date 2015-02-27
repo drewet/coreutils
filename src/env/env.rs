@@ -1,5 +1,5 @@
 #![crate_name = "env"]
-#![allow(unstable)]
+#![feature(core, old_io, os)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -53,7 +53,7 @@ fn print_env(null: bool) {
     }
 }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let prog = args[0].as_slice();
 
     // to handle arguments the same way than GNU env, we can't use getopts
@@ -192,13 +192,13 @@ pub fn uumain(args: Vec<String>) -> isize {
     }
 
     if opts.program.len() >= 1 {
-        use std::io::process::{Command, InheritFd};
+        use std::old_io::process::{Command, InheritFd};
         let prog = opts.program[0].clone();
-        let args = opts.program.slice_from(1);
+        let args = &opts.program[1..];
         match Command::new(prog).args(args).stdin(InheritFd(0)).stdout(InheritFd(1)).stderr(InheritFd(2)).status() {
             Ok(exit) =>
                 return match exit {
-                    std::io::process::ExitStatus(s) => s,
+                    std::old_io::process::ExitStatus(s) => s as i32,
                     _ => 1
                 },
             Err(_) => return 1

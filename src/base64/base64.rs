@@ -1,5 +1,5 @@
 #![crate_name = "base64"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -17,8 +17,8 @@ extern crate libc;
 
 use std::ascii::AsciiExt;
 use std::error::Error;
-use std::io::{println, File, stdout};
-use std::io::stdio::stdin_raw;
+use std::old_io::{println, File, stdout};
+use std::old_io::stdio::stdin_raw;
 
 use getopts::{
     getopts,
@@ -35,7 +35,7 @@ mod util;
 
 static NAME: &'static str = "base64";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let opts = [
         optflag("d", "decode", "decode data"),
         optflag("i", "ignore-garbage", "when decoding, ignore non-alphabetic characters"),
@@ -66,9 +66,9 @@ pub fn uumain(args: Vec<String>) -> isize {
     let ignore_garbage = matches.opt_present("ignore-garbage");
     let line_wrap = match matches.opt_str("wrap") {
         Some(s) => match s.parse() {
-            Some(s) => s,
-            None => {
-                crash!(1, "error: {}", "Argument to option 'wrap' improperly formatted.");
+            Ok(s) => s,
+            Err(e)=> {
+                crash!(1, "error: Argument to option 'wrap' improperly formatted: {}", e);
             }
         },
         None => 76
@@ -119,7 +119,7 @@ fn decode(input: &mut Reader, ignore_garbage: bool) {
         Ok(bytes) => {
             let mut out = stdout();
 
-            match out.write(bytes.as_slice()) {
+            match out.write_all(bytes.as_slice()) {
                 Ok(_) => {}
                 Err(f) => { crash!(1, "{}", f); }
             }
@@ -129,7 +129,7 @@ fn decode(input: &mut Reader, ignore_garbage: bool) {
             }
         }
         Err(s) => {
-            crash!(1, "error: {} ({})", s.description(), s.detail().unwrap_or("".to_string()));
+            crash!(1, "error: {} ({:?})", s.description(), s);
         }
     }
 }

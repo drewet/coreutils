@@ -1,5 +1,5 @@
 #![crate_name = "nice"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, os, rustc_private, std_misc)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -14,7 +14,7 @@ extern crate getopts;
 extern crate libc;
 
 use std::ffi::CString;
-use std::io::IoError;
+use std::old_io::IoError;
 use std::os;
 use libc::{c_char, c_int, execvp};
 
@@ -33,7 +33,7 @@ extern {
     fn setpriority(which: c_int, who: c_int, prio: c_int) -> c_int;
 }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let opts = [
         getopts::optopt("n", "adjustment", "add N to the niceness (default is 10)", "N"),
         getopts::optflag("h", "help", "display this help and exit"),
@@ -80,9 +80,9 @@ pub fn uumain(args: Vec<String>) -> isize {
                     return 125;
                 }
                 match nstr.as_slice().parse() {
-                    Some(num) => num,
-                    None => {
-                        show_error!("\"{}\" is not a valid number", nstr);
+                    Ok(num) => num,
+                    Err(e)=> {
+                        show_error!("\"{}\" is not a valid number: {}", nstr, e);
                         return 125;
                     }
                 }
@@ -102,7 +102,7 @@ pub fn uumain(args: Vec<String>) -> isize {
             show_warning!("{}", IoError::last_error());
         }
 
-        let cstrs : Vec<CString> = matches.free.iter().map(|x| CString::from_slice(x.as_bytes())).collect();
+        let cstrs : Vec<CString> = matches.free.iter().map(|x| CString::new(x.as_bytes()).unwrap()).collect();
         let mut args : Vec<*const c_char> = cstrs.iter().map(|s| s.as_ptr()).collect();
         args.push(0 as *const c_char);
         unsafe { execvp(args[0], args.as_mut_ptr()); }

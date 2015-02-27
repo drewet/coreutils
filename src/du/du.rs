@@ -1,5 +1,5 @@
 #![crate_name = "du"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private, std_misc, unicode)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -16,10 +16,10 @@ extern crate getopts;
 extern crate libc;
 extern crate time;
 
-use std::io::{stderr, fs, FileStat, FileType};
+use std::old_io::{stderr, fs, FileStat, FileType};
 use std::num::Float;
 use std::option::Option;
-use std::path::Path;
+use std::old_path::Path;
 use std::sync::{Arc, Future};
 use time::Timespec;
 
@@ -90,7 +90,7 @@ fn du(path: &Path, mut my_stat: Stat,
     stats
 }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = args[0].as_slice();
     let opts = [
         // In task
@@ -194,7 +194,7 @@ ers of 1000).",
     let summarize = matches.opt_present("summarize");
 
     let max_depth_str = matches.opt_str("max-depth");
-    let max_depth = max_depth_str.as_ref().and_then(|s| s.parse::<usize>());
+    let max_depth = max_depth_str.as_ref().and_then(|s| s.parse::<usize>().ok());
     match (max_depth_str, max_depth) {
         (Some(ref s), _) if summarize => {
             show_error!("summarizing conflicts with --max-depth={}", *s);

@@ -1,5 +1,5 @@
 #![crate_name = "touch"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -13,8 +13,8 @@
 extern crate getopts;
 extern crate time;
 
-use std::io::File;
-use std::io::fs::PathExtensions;
+use std::old_io::File;
+use std::old_io::fs::PathExtensions;
 
 #[path = "../common/util.rs"]
 #[macro_use]
@@ -23,7 +23,7 @@ mod util;
 static NAME: &'static str = "touch";
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let opts = [
         getopts::optflag("a", "",               "change only the access time"),
         getopts::optflag("c", "no-create",      "do not create any files"),
@@ -127,7 +127,7 @@ pub fn uumain(args: Vec<String>) -> isize {
             }
         }
 
-        match std::io::fs::change_file_times(&path, atime, mtime) {
+        match std::old_io::fs::change_file_times(&path, atime, mtime) {
             Ok(t) => t,
             Err(e) => panic!("Unable to modify times\n{}", e.desc)
         }
@@ -136,14 +136,14 @@ pub fn uumain(args: Vec<String>) -> isize {
     0
 }
 
-fn stat(path: &Path, follow: bool) -> std::io::FileStat {
+fn stat(path: &Path, follow: bool) -> std::old_io::FileStat {
     if follow {
-        match std::io::fs::stat(path) {
+        match std::old_io::fs::stat(path) {
             Ok(stat) => stat,
             Err(e)   => panic!("Unable to open file\n{}", e.desc)
         }
     } else {
-        match std::io::fs::lstat(path) {
+        match std::old_io::fs::lstat(path) {
             Ok(stat) => stat,
             Err(e)   => panic!("Unable to open file\n{}", e.desc)
         }

@@ -1,5 +1,5 @@
 #![crate_name = "head"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -15,10 +15,10 @@
 extern crate getopts;
 
 use std::char::CharExt;
-use std::io::{stdin};
-use std::io::{BufferedReader, BytesReader};
-use std::io::fs::File;
-use std::path::Path;
+use std::old_io::{stdin};
+use std::old_io::{BufferedReader, BytesReader};
+use std::old_io::fs::File;
+use std::old_path::Path;
 use std::str::from_utf8;
 use getopts::{optopt, optflag, getopts, usage};
 
@@ -28,9 +28,9 @@ mod util;
 
 static NAME: &'static str = "head";
 
-pub fn uumain(args: Vec<String>) -> isize {
-    let mut line_count = 10us;
-    let mut byte_count = 0us;
+pub fn uumain(args: Vec<String>) -> i32 {
+    let mut line_count = 10usize;
+    let mut byte_count = 0usize;
 
     // handle obsolete -number syntax
     let options = match obsolete(args.tail()) {
@@ -71,18 +71,18 @@ pub fn uumain(args: Vec<String>) -> isize {
                 return 1;
             }
             match n.parse::<usize>() {
-                Some(m) => { line_count = m }
-                None => {
-                    show_error!("invalid line count '{}'", n);
+                Ok(m) => { line_count = m }
+                Err(e) => {
+                    show_error!("invalid line count '{}': {}", n, e);
                     return 1;
                 }
             }
         }
         None => match given_options.opt_str("c") {
             Some(count) => match count.parse::<usize>() {
-                Some(m) => byte_count = m,
-                None => {
-                    show_error!("invalid byte count '{}'", count);
+                Ok(m) => byte_count = m,
+                Err(e)=> {
+                    show_error!("invalid byte count '{}': {}", count, e);
                     return 1;
                 }
             },
@@ -151,7 +151,7 @@ fn obsolete(options: &[String]) -> (Vec<String>, Option<usize>) {
                 // If this is the last number
                 if pos == len - 1 {
                     options.remove(a);
-                    let number: Option<usize> = from_utf8(current.slice(1,len)).unwrap().parse::<usize>();
+                    let number: Option<usize> = from_utf8(&current[1..len]).unwrap().parse::<usize>().ok();
                     return (options, Some(number.unwrap()));
                 }
             }

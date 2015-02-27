@@ -1,5 +1,5 @@
 use std;
-use std::io::{IoResult, IoError};
+use std::old_io::{IoResult, IoError};
 
 pub struct BufReader<R> {
     reader: R,
@@ -38,7 +38,7 @@ impl<R: Reader> BufReader<R> {
 
     #[inline]
     fn read(&mut self) -> IoResult<usize> {
-        let buffer_fill = self.buffer.slice_from_mut(self.end);
+        let buffer_fill = &mut self.buffer[self.end..];
 
         match self.reader.read(buffer_fill) {
             Ok(nread) => {
@@ -66,13 +66,13 @@ impl<R: Reader> BufReader<R> {
 
         loop {
             match self.maybe_fill_buf() {
-                Ok(0) | Err(IoError { kind: std::io::EndOfFile, .. })
+                Ok(0) | Err(IoError { kind: std::old_io::EndOfFile, .. })
                     if self.start == self.end => return bytes_consumed,
                 Err(err) => panic!("read error: {}", err.desc),
                 _ => ()
             }
 
-            let filled_buf = self.buffer.slice(self.start, self.end);
+            let filled_buf = &self.buffer[self.start..self.end];
 
             match filled_buf.position_elem(&b'\n') {
                 Some(idx) => {
@@ -93,7 +93,7 @@ impl<R: Reader> BufReader<R> {
 impl<R: Reader> Bytes::Select for BufReader<R> {
     fn select<'a>(&'a mut self, bytes: usize) -> Bytes::Selected<'a> {
         match self.maybe_fill_buf() {
-            Err(IoError { kind: std::io::EndOfFile, .. }) => (),
+            Err(IoError { kind: std::old_io::EndOfFile, .. }) => (),
             Err(err) => panic!("read error: {}", err.desc),
             _ => ()
         }
@@ -103,14 +103,12 @@ impl<R: Reader> Bytes::Select for BufReader<R> {
             buf_used if bytes < buf_used => {
                 // because the output delimiter should only be placed between
                 // segments check if the byte after bytes is a newline
-                let buf_slice = self.buffer.slice(self.start,
-                                                  self.start + bytes + 1);
+                let buf_slice = &self.buffer[self.start..self.start + bytes + 1];
 
                 match buf_slice.position_elem(&b'\n') {
                     Some(idx) => idx,
                     None => {
-                        let segment = self.buffer.slice(self.start,
-                                                        self.start + bytes);
+                        let segment = &self.buffer[self.start..self.start + bytes];
 
                         self.start += bytes;
 
@@ -119,12 +117,12 @@ impl<R: Reader> Bytes::Select for BufReader<R> {
                 }
             }
             _ => {
-                let buf_filled = self.buffer.slice(self.start, self.end);
+                let buf_filled = &self.buffer[self.start..self.end];
 
                 match buf_filled.position_elem(&b'\n') {
                     Some(idx) => idx,
                     None => {
-                        let segment = self.buffer.slice(self.start, self.end);
+                        let segment = &self.buffer[self.start..self.end];
 
                         self.start = 0;
                         self.end = 0;
@@ -136,7 +134,7 @@ impl<R: Reader> Bytes::Select for BufReader<R> {
         };
 
         let new_start = self.start + newline_idx + 1;
-        let segment = self.buffer.slice(self.start, new_start);
+        let segment = &self.buffer[self.start..new_start];
 
         self.start = new_start;
         Bytes::Selected::NewlineFound(segment)

@@ -1,5 +1,5 @@
 #![crate_name = "tty"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, rustc_private, std_misc)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -17,9 +17,9 @@
 extern crate getopts;
 extern crate libc;
 
-use std::ffi::c_str_to_bytes;
-use std::io::println;
-use std::io::stdio::stderr;
+use std::ffi::CStr;
+use std::old_io::println;
+use std::old_io::stdio::stderr;
 use getopts::{optflag,getopts};
 
 #[path = "../common/util.rs"]
@@ -33,7 +33,7 @@ extern {
 
 static NAME: &'static str = "tty";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let options = [
         optflag("s", "silent", "print nothing, only return an exit status")
     ];
@@ -52,7 +52,7 @@ pub fn uumain(args: Vec<String>) -> isize {
     let tty = unsafe { 
         let ptr = ttyname(libc::STDIN_FILENO);
         if !ptr.is_null() {
-            String::from_utf8_lossy(c_str_to_bytes(&ptr)).to_string()
+            String::from_utf8_lossy(CStr::from_ptr(ptr).to_bytes()).to_string()
         } else {
             "".to_string()
         }
@@ -74,7 +74,7 @@ pub fn uumain(args: Vec<String>) -> isize {
         }
     };
 
-    exit_code as isize
+    exit_code
 }
 
 fn usage () {

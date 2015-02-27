@@ -17,8 +17,8 @@ extern crate getopts;
 extern crate unicode;
 
 use std::cmp;
-use std::io::{BufferedReader, BufferedWriter, File, IoResult};
-use std::io::stdio::{stdin_raw, stdout_raw};
+use std::old_io::{BufferedReader, BufferedWriter, File, IoResult};
+use std::old_io::stdio::{stdin_raw, stdout_raw};
 use linebreak::break_lines;
 use parasplit::ParagraphStream;
 
@@ -59,7 +59,7 @@ struct FmtOptions {
     tabwidth        : usize,
 }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
 
     let opts = [
         getopts::optflag("c", "crown-margin", "First and second line of paragraph may have different indentations, in which case the first line's indentation is preserved, and each subsequent line's indentation matches the second line."),
@@ -146,8 +146,8 @@ pub fn uumain(args: Vec<String>) -> isize {
         Some(s) => {
             fmt_opts.width =
                 match s.parse::<usize>() {
-                    Some(t) => t,
-                    None => { crash!(1, "Invalid WIDTH specification: `{}'", s); }
+                    Ok(t) => t,
+                    Err(e) => { crash!(1, "Invalid WIDTH specification: `{}': {}", s, e); }
                 };
             fmt_opts.goal = cmp::min(fmt_opts.width * 94 / 100, fmt_opts.width - 3);
         }
@@ -158,8 +158,8 @@ pub fn uumain(args: Vec<String>) -> isize {
         Some(s) => {
             fmt_opts.goal =
                 match s.parse::<usize>() {
-                    Some(t) => t,
-                    None => { crash!(1, "Invalid GOAL specification: `{}'", s); }
+                    Ok(t) => t,
+                    Err(e) => { crash!(1, "Invalid GOAL specification: `{}': {}", s, e); }
                 };
             if !matches.opt_present("w") {
                 fmt_opts.width = cmp::max(fmt_opts.goal * 100 / 94, fmt_opts.goal + 3);
@@ -174,8 +174,8 @@ pub fn uumain(args: Vec<String>) -> isize {
         Some(s) => {
             fmt_opts.tabwidth =
                 match s.parse::<usize>() {
-                    Some(t) => t,
-                    None => { crash!(1, "Invalid TABWIDTH specification: `{}'", s); }
+                    Ok(t) => t,
+                    Err(e) => { crash!(1, "Invalid TABWIDTH specification: `{}': {}", s, e); }
                 };
         }
         None => ()
@@ -207,7 +207,7 @@ pub fn uumain(args: Vec<String>) -> isize {
         let mut p_stream = ParagraphStream::new(&fmt_opts, &mut fp);
         for para_result in p_stream {
             match para_result {
-                Err(s) => silent_unwrap!(ostream.write(s.as_bytes())),
+                Err(s) => silent_unwrap!(ostream.write_all(s.as_bytes())),
                 Ok(para) => break_lines(&para, &fmt_opts, &mut ostream)
             }
         }

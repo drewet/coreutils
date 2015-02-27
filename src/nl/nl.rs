@@ -1,5 +1,6 @@
 #![crate_name = "nl"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
+#![plugin(regex_macros)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -12,16 +13,15 @@
  */
 #![feature(plugin)]
 
-#[plugin] #[no_link] extern crate regex_macros;
 extern crate regex;
 extern crate getopts;
 
-use std::io::{stdin};
-use std::io::BufferedReader;
-use std::io::fs::File;
+use std::old_io::{stdin};
+use std::old_io::BufferedReader;
+use std::old_io::fs::File;
 use std::iter::repeat;
 use std::num::Int;
-use std::path::Path;
+use std::old_path::Path;
 use getopts::{optopt, optflag, getopts, usage, OptGroup};
 
 #[path="../common/util.rs"]
@@ -77,7 +77,7 @@ enum NumberFormat {
     RightZero,
 }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let possible_options = [
         optopt("b", "body-numbering", "use STYLE for numbering body lines", "STYLE"),
         optopt("d", "section-delimiter", "use CC for separating logical pages", "CC"),

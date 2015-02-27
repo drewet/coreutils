@@ -1,5 +1,5 @@
 #![crate_name = "timeout"]
-#![allow(unstable)]
+#![feature(collections, core, io, old_io, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -13,8 +13,8 @@
 extern crate getopts;
 extern crate libc;
 
-use std::io::{PathDoesntExist, FileNotFound};
-use std::io::process::{Command, ExitStatus, ExitSignal, InheritFd};
+use std::old_io::{PathDoesntExist, FileNotFound};
+use std::old_io::process::{Command, ExitStatus, ExitSignal, InheritFd};
 
 #[path = "../common/util.rs"]
 #[macro_use]
@@ -33,9 +33,9 @@ extern {
 static NAME: &'static str = "timeout";
 static VERSION: &'static str = "1.0.0";
 
-static ERR_EXIT_STATUS: isize = 125;
+static ERR_EXIT_STATUS: i32 = 125;
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = args[0].clone();
 
     let opts = [
@@ -95,13 +95,13 @@ Usage:
                 return ERR_EXIT_STATUS;
             }
         };
-        return timeout(matches.free[1].as_slice(), matches.free.slice_from(2), duration, signal, kill_after, foreground, status);
+        return timeout(matches.free[1].as_slice(), &matches.free[2..], duration, signal, kill_after, foreground, status);
     }
 
     0
 }
 
-fn timeout(cmdname: &str, args: &[String], duration: f64, signal: usize, kill_after: f64, foreground: bool, preserve_status: bool) -> isize {
+fn timeout(cmdname: &str, args: &[String], duration: f64, signal: usize, kill_after: f64, foreground: bool, preserve_status: bool) -> i32 {
     if !foreground {
         unsafe { setpgid(0, 0) };
     }
@@ -125,8 +125,8 @@ fn timeout(cmdname: &str, args: &[String], duration: f64, signal: usize, kill_af
     process.set_timeout(Some((duration * 1000f64) as u64));  // FIXME: this ignores the f64...
     match process.wait() {
         Ok(status) => match status {
-            ExitStatus(stat) => stat,
-            ExitSignal(stat) => stat
+            ExitStatus(stat) => stat as i32,
+            ExitSignal(stat) => stat as i32
         },
         Err(_) => {
             return_if_err!(ERR_EXIT_STATUS, process.signal(signal as isize));
@@ -135,8 +135,8 @@ fn timeout(cmdname: &str, args: &[String], duration: f64, signal: usize, kill_af
                 Ok(status) => {
                     if preserve_status {
                         match status {
-                            ExitStatus(stat) => stat,
-                            ExitSignal(stat) => stat
+                            ExitStatus(stat) => stat as i32,
+                            ExitSignal(stat) => stat as i32
                         }
                     } else {
                         124

@@ -1,5 +1,5 @@
 #![crate_name = "rm"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -13,8 +13,8 @@
 extern crate getopts;
 extern crate libc;
 
-use std::io::{print, stdin, stdio, fs, BufferedReader};
-use std::io::fs::PathExtensions;
+use std::old_io::{print, stdin, stdio, fs, BufferedReader};
+use std::old_io::fs::PathExtensions;
 
 #[path = "../common/util.rs"]
 #[macro_use]
@@ -31,7 +31,7 @@ impl Copy for InteractiveMode {}
 
 static NAME: &'static str = "rm";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = args[0].clone();
 
     // TODO: make getopts support -R in addition to -r
@@ -126,7 +126,7 @@ pub fn uumain(args: Vec<String>) -> isize {
 }
 
 // TODO: implement one-file-system
-fn remove(files: Vec<String>, force: bool, interactive: InteractiveMode, one_fs: bool, preserve_root: bool, recursive: bool, dir: bool, verbose: bool) -> Result<(), isize> {
+fn remove(files: Vec<String>, force: bool, interactive: InteractiveMode, one_fs: bool, preserve_root: bool, recursive: bool, dir: bool, verbose: bool) -> Result<(), i32> {
     let mut r = Ok(());
 
     for filename in files.iter() {
@@ -168,7 +168,7 @@ fn remove(files: Vec<String>, force: bool, interactive: InteractiveMode, one_fs:
     r
 }
 
-fn remove_dir(path: &Path, name: &str, interactive: InteractiveMode, verbose: bool) -> Result<(), isize> {
+fn remove_dir(path: &Path, name: &str, interactive: InteractiveMode, verbose: bool) -> Result<(), i32> {
     let response =
         if interactive == InteractiveMode::InteractiveAlways {
             prompt_file(path, name)
@@ -188,7 +188,7 @@ fn remove_dir(path: &Path, name: &str, interactive: InteractiveMode, verbose: bo
     Ok(())
 }
 
-fn remove_file(path: &Path, name: &str, interactive: InteractiveMode, verbose: bool) -> Result<(), isize> {
+fn remove_file(path: &Path, name: &str, interactive: InteractiveMode, verbose: bool) -> Result<(), i32> {
     let response =
         if interactive == InteractiveMode::InteractiveAlways {
             prompt_file(path, name)

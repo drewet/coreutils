@@ -1,5 +1,5 @@
 #![crate_name = "paste"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -13,7 +13,7 @@
 extern crate getopts;
 extern crate libc;
 
-use std::io;
+use std::old_io as io;
 use std::iter::repeat; 
 
 #[path = "../common/util.rs"]
@@ -23,7 +23,7 @@ mod util;
 static NAME: &'static str = "paste";
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = args[0].clone();
 
     let opts = [
@@ -99,7 +99,7 @@ fn paste(filenames: Vec<String>, serial: bool, delimiters: &str) {
                     eof_count += 1;
                 } else {
                     match file.read_line() {
-                        Ok(line) => output.push_str(line.as_slice().slice_to(line.len() - 1)),
+                        Ok(line) => output.push_str(&line.as_slice()[..line.len() - 1]),
                         Err(f) => if f.kind == io::EndOfFile {
                             eof[i] = true;
                             eof_count += 1;

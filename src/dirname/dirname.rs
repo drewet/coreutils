@@ -1,5 +1,5 @@
 #![crate_name = "dirname"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -12,11 +12,11 @@
 
 extern crate getopts;
 
-use std::io::print;
+use std::old_io::print;
 
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = args[0].clone();
     let opts = [
         getopts::optflag("z", "zero", "separate output with NUL rather than newline"),
@@ -53,7 +53,7 @@ directory).", &opts).as_slice());
 
     if !matches.free.is_empty() {
         for path in matches.free.iter() {
-            let p = std::path::Path::new(path.clone());
+            let p = std::old_path::Path::new(path.clone());
             let d = std::str::from_utf8(p.dirname());
             if d.is_ok() {
                 print(d.unwrap());

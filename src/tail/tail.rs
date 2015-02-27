@@ -1,5 +1,5 @@
 #![crate_name = "tail"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private, std_misc)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -14,14 +14,14 @@
 extern crate getopts;
 
 use std::char::CharExt;
-use std::io::{stdin, stdout};
-use std::io::{BufferedReader, BytesReader};
-use std::io::fs::File;
-use std::path::Path;
+use std::old_io::{stdin, stdout};
+use std::old_io::{BufferedReader, BytesReader};
+use std::old_io::fs::File;
+use std::old_path::Path;
 use std::str::from_utf8;
 use getopts::{optopt, optflag, getopts, usage};
-use std::collections::ring_buf::RingBuf;
-use std::io::timer::sleep;
+use std::collections::VecDeque;
+use std::old_io::timer::sleep;
 use std::time::duration::Duration;
 
 #[path = "../common/util.rs"]
@@ -31,11 +31,11 @@ mod util;
 static NAME: &'static str = "tail";
 static VERSION: &'static str = "0.0.1";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let mut beginning = false;
     let mut lines = true;
-    let mut byte_count = 0us;
-    let mut line_count = 10us;
+    let mut byte_count = 0usize;
+    let mut line_count = 10usize;
     let mut sleep_msec = 1000u64;
 
     // handle obsolete -number syntax
@@ -73,7 +73,7 @@ pub fn uumain(args: Vec<String>) -> isize {
     if follow {
         match given_options.opt_str("s") {
             Some(n) => {
-                let parsed: Option<u64> = n.parse();
+                let parsed: Option<u64> = n.parse().ok();
                 match parsed {
                     Some(m) => { sleep_msec = m * 1000 }
                     None => {}
@@ -88,7 +88,7 @@ pub fn uumain(args: Vec<String>) -> isize {
             let mut slice = n.as_slice();
             if slice.len() > 0 && slice.char_at(0) == '+' {
                 beginning = true;
-                slice = slice.slice_from(1);
+                slice = &slice[1..];
             }
             line_count = match parse_size(slice) {
                 Some(m) => m,
@@ -103,7 +103,7 @@ pub fn uumain(args: Vec<String>) -> isize {
                 let mut slice = n.as_slice();
                 if slice.len() > 0 && slice.char_at(0) == '+' {
                     beginning = true;
-                    slice = slice.slice_from(1);
+                    slice = &slice[1..];
                 }
                 byte_count = match parse_size(slice) {
                     Some(m) => m,
@@ -152,52 +152,52 @@ pub fn uumain(args: Vec<String>) -> isize {
 fn parse_size(mut size_slice: &str) -> Option<usize> {
     let mut base =
         if size_slice.len() > 0 && size_slice.char_at(size_slice.len() - 1) == 'B' {
-            size_slice = size_slice.slice_to(size_slice.len() - 1);
-            1000us
+            size_slice = &size_slice[..size_slice.len() - 1];
+            1000usize
         } else {
-            1024us
+            1024usize
         };
     let exponent = 
         if size_slice.len() > 0 {
             let mut has_suffix = true;
             let exp = match size_slice.char_at(size_slice.len() - 1) {
-                'K' => 1us,
-                'M' => 2us,
-                'G' => 3us,
-                'T' => 4us,
-                'P' => 5us,
-                'E' => 6us,
-                'Z' => 7us,
-                'Y' => 8us,
+                'K' => 1usize,
+                'M' => 2usize,
+                'G' => 3usize,
+                'T' => 4usize,
+                'P' => 5usize,
+                'E' => 6usize,
+                'Z' => 7usize,
+                'Y' => 8usize,
                 'b' => {
-                    base = 512us;
-                    1us
+                    base = 512usize;
+                    1usize
                 }
                 _ => {
                     has_suffix = false;
-                    0us
+                    0usize
                 }
             };
             if has_suffix {
-                size_slice = size_slice.slice_to(size_slice.len() - 1);
+                size_slice = &size_slice[..size_slice.len() - 1];
             }
             exp
         } else {
-            0us
+            0usize
         };
 
-    let mut multiplier = 1us;
-    for _ in range(0us, exponent) {
+    let mut multiplier = 1usize;
+    for _ in range(0usize, exponent) {
         multiplier *= base;
     }
-    if base == 1000us && exponent == 0us {
+    if base == 1000usize && exponent == 0usize {
         // sole B is not a valid suffix
         None
     } else {
         let value = size_slice.parse();
         match value {
-            Some(v) => Some(multiplier * v),
-            None => None
+            Ok(v) => Some(multiplier * v),
+            _ => None
         }
     }
 }
@@ -224,7 +224,7 @@ fn obsolete(options: &[String]) -> (Vec<String>, Option<usize>) {
                 // If this is the last number
                 if pos == len - 1 {
                     options.remove(a);
-                    let number: Option<usize> = from_utf8(current.slice(1,len)).unwrap().parse();
+                    let number: Option<usize> = from_utf8(&current[1..len]).unwrap().parse().ok();
                     return (options, Some(number.unwrap()));
                 }
             }
@@ -241,8 +241,8 @@ macro_rules! tail_impl (
         // read through each line and store them in a ringbuffer that always contains
         // count lines/chars. When reaching the end of file, output the data in the
         // ringbuf.
-        let mut ringbuf: RingBuf<$kind> = RingBuf::new();
-        let mut data = $reader.$kindfn().skip(
+        let mut ringbuf: VecDeque<$kind> = VecDeque::new();
+        let data = $reader.$kindfn().skip(
             if $beginning {
                 let temp = $count;
                 $count = ::std::usize::MAX;

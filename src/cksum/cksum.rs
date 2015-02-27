@@ -1,5 +1,5 @@
 #![crate_name = "cksum"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -12,8 +12,8 @@
 
 extern crate getopts;
 
-use std::io::{EndOfFile, File, IoError, IoResult, print};
-use std::io::stdio::stdin_raw;
+use std::old_io::{EndOfFile, File, IoError, IoResult, print};
+use std::old_io::stdio::stdin_raw;
 use std::mem;
 
 use crc_table::CRC_TABLE;
@@ -45,7 +45,7 @@ fn crc_final(mut crc: u32, mut length: usize) -> u32 {
 #[inline]
 fn cksum(fname: &str) -> IoResult<(u32, usize)> {
     let mut crc = 0u32;
-    let mut size = 0us;
+    let mut size = 0usize;
 
     let mut stdin_buf;
     let mut file_buf;
@@ -64,7 +64,7 @@ fn cksum(fname: &str) -> IoResult<(u32, usize)> {
     loop {
         match rd.read(&mut bytes) {
             Ok(num_bytes) => {
-                for &b in bytes.slice_to(num_bytes).iter() {
+                for &b in bytes[..num_bytes].iter() {
                     crc = crc_update(crc, b);
                 }
                 size += num_bytes;
@@ -75,7 +75,7 @@ fn cksum(fname: &str) -> IoResult<(u32, usize)> {
     }
 }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let opts = [
         getopts::optflag("h", "help", "display this help and exit"),
         getopts::optflag("V", "version", "output version information and exit"),

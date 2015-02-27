@@ -1,5 +1,5 @@
 #![crate_name = "uniq"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private, std_misc)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -16,7 +16,7 @@ extern crate getopts;
 use std::ascii::OwnedAsciiExt;
 use std::cmp::min;
 use std::str::FromStr;
-use std::io;
+use std::old_io as io;
 
 #[path = "../common/util.rs"]
 #[macro_use]
@@ -68,7 +68,7 @@ impl Uniq {
                 Some(i) => min(slice_start + i, len),
                 None => len
             };
-            let sliced = line.as_slice().slice(slice_start, slice_stop).to_string();
+            let sliced = line.as_slice()[slice_start..slice_stop].to_string();
             if self.ignore_case {
                 sliced.into_ascii_uppercase()
             } else {
@@ -113,13 +113,13 @@ impl Uniq {
 
 fn opt_parsed<T: FromStr>(opt_name: &str, matches: &getopts::Matches) -> Option<T> {
     matches.opt_str(opt_name).map(|arg_str| {
-        let opt_val: Option<T> = arg_str.parse();
+        let opt_val: Option<T> = arg_str.parse().ok();
         opt_val.unwrap_or_else(||
             crash!(1, "Invalid argument for {}: {}", opt_name, arg_str))
     })
 }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program_path = Path::new(args[0].clone());
     let program = program_path.filename_str().unwrap_or(NAME);
 

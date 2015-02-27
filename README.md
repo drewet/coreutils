@@ -139,20 +139,18 @@ To do
 - getlimits
 - install
 - join
-- libstdbuf
 - ln
 - ls
 - mknod
 - mktemp
 - mv (almost done, one more option)
 - numfmt
-- od
+- od (in progress, needs lots of work)
 - pathchk
 - pinky
 - pr
 - printf
 - ptx
-- readlink
 - remove
 - runcon
 - setuidgid
@@ -160,7 +158,6 @@ To do
 - sort (a couple of options implemented)
 - split (a couple of missing options)
 - stat
-- stdbuf
 - stty
 - tail (not all features implemented)
 - test (not all features implemented)

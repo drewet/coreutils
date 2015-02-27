@@ -1,5 +1,5 @@
 #![crate_name = "shuf"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rand, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -14,8 +14,8 @@ extern crate getopts;
 extern crate libc;
 
 use std::cmp;
-use std::io;
-use std::io::IoResult;
+use std::old_io as io;
+use std::old_io::IoResult;
 use std::iter::{range_inclusive, RangeInclusive};
 use std::rand::{self, Rng};
 use std::usize;
@@ -33,7 +33,7 @@ enum Mode {
 static NAME: &'static str = "shuf";
 static VERSION: &'static str = "0.0.1";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = args[0].clone();
 
     let opts = [
@@ -97,9 +97,9 @@ With no FILE, or when FILE is -, read standard input.",
         let zero = matches.opt_present("zero-terminated");
         let count = match matches.opt_str("head-count") {
             Some(cnt) => match cnt.parse::<usize>() {
-                Some(val) => val,
-                None => {
-                    show_error!("'{}' is not a valid count", cnt);
+                Ok(val) => val,
+                Err(e) => {
+                    show_error!("'{}' is not a valid count: {}", cnt, e);
                     return 1;
                 }
             },
@@ -186,18 +186,18 @@ fn shuf_lines(mut lines: Vec<String>, repeat: bool, zero: bool, count: usize, ou
     Ok(())
 }
 
-fn parse_range(input_range: String) -> Result<RangeInclusive<usize>, (String, isize)> {
+fn parse_range(input_range: String) -> Result<RangeInclusive<usize>, (String, i32)> {
     let split: Vec<&str> = input_range.as_slice().split('-').collect();
     if split.len() != 2 {
         Err(("invalid range format".to_string(), 1))
     } else {
         let begin = match split[0].parse::<usize>() {
-            Some(m) => m,
-            None => return Err((format!("{} is not a valid number", split[0]), 1))
+            Ok(m) => m,
+            Err(e)=> return Err((format!("{} is not a valid number: {}", split[0], e), 1))
         };
         let end = match split[1].parse::<usize>() {
-            Some(m) => m,
-            None => return Err((format!("{} is not a valid number", split[1]), 1))
+            Ok(m) => m,
+            Err(e)=> return Err((format!("{} is not a valid number: {}", split[1], e), 1))
         };
         Ok(range_inclusive(begin, end))
     }

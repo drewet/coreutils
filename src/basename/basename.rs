@@ -1,5 +1,5 @@
 #![crate_name = "basename"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -14,7 +14,7 @@ extern crate getopts;
 extern crate libc;
 
 use std::borrow::ToOwned;
-use std::io::{print, println};
+use std::old_io::{print, println};
 
 #[path = "../common/util.rs"]
 #[macro_use]
@@ -23,7 +23,7 @@ mod util;
 static NAME: &'static str = "basename";
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = strip_dir(args[0].as_slice());
 
     //
@@ -105,7 +105,7 @@ fn strip_suffix(name: &str, suffix: &str) -> String {
     }
 
     if name.ends_with(suffix) {
-        return name.slice_to(name.len() - suffix.len()).to_owned();
+        return name[..name.len() - suffix.len()].to_owned();
     }
 
     name.to_owned()

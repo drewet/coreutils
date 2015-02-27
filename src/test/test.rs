@@ -1,5 +1,5 @@
 #![crate_name = "test"]
-#![allow(unstable)]
+#![feature(core, os, std_misc)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -20,7 +20,7 @@ use std::str::{from_utf8};
 static NAME: &'static str = "test";
 
 // TODO: decide how to handle non-UTF8 input for all the utils
-pub fn uumain(_: Vec<String>) -> isize {
+pub fn uumain(_: Vec<String>) -> i32 {
     let args = args_as_bytes();
     let args: Vec<&[u8]> = args.iter().map(|a| a.as_slice()).collect();
     if args.len() == 0 {
@@ -28,19 +28,19 @@ pub fn uumain(_: Vec<String>) -> isize {
     }
     let args =
         if !args[0].ends_with(NAME.as_bytes()) {
-            args.slice_from(1)
+            &args[1..]
         } else {
             args.as_slice()
         };
     let args = match args[0] {
         b"[" => match args[args.len() - 1] {
-            b"]" => args.slice(1, args.len() - 1),
+            b"]" => &args[1..args.len() - 1],
             _ => return 2,
         },
-        _ => args.slice(1, args.len()),
+        _ => &args[1..args.len()],
     };
     let mut error = false;
-    let retval = 1 - parse_expr(args, &mut error) as isize;
+    let retval = 1 - parse_expr(args, &mut error) as i32;
     if error {
         2
     } else {
@@ -54,7 +54,7 @@ fn one(args: &[&[u8]]) -> bool {
 
 fn two(args: &[&[u8]], error: &mut bool) -> bool {
     match args[0] {
-        b"!" => !one(args.slice_from(1)),
+        b"!" => !one(&args[1..]),
         b"-b" => path(args[1], PathCondition::BlockSpecial),
         b"-c" => path(args[1], PathCondition::CharacterSpecial),
         b"-d" => path(args[1], PathCondition::Directory),
@@ -63,7 +63,7 @@ fn two(args: &[&[u8]], error: &mut bool) -> bool {
         b"-g" => path(args[1], PathCondition::GroupIDFlag),
         b"-h" => path(args[1], PathCondition::SymLink),
         b"-L" => path(args[1], PathCondition::SymLink),
-        b"-n" => one(args.slice_from(1)),
+        b"-n" => one(&args[1..]),
         b"-p" => path(args[1], PathCondition::FIFO),
         b"-r" => path(args[1], PathCondition::Readable),
         b"-S" => path(args[1], PathCondition::Socket),
@@ -72,7 +72,7 @@ fn two(args: &[&[u8]], error: &mut bool) -> bool {
         b"-u" => path(args[1], PathCondition::UserIDFlag),
         b"-w" => path(args[1], PathCondition::Writable),
         b"-x" => path(args[1], PathCondition::Executable),
-        b"-z" => !one(args.slice_from(1)),
+        b"-z" => !one(&args[1..]),
         _ => {
             *error = true;
             false
@@ -91,7 +91,7 @@ fn three(args: &[&[u8]], error: &mut bool) -> bool {
         b"-lt" => integers(args[0], args[2], IntegerCondition::Less),
         b"-le" => integers(args[0], args[2], IntegerCondition::LessEqual),
         _ => match args[0] {
-            b"!" => !two(args.slice_from(1), error),
+            b"!" => !two(&args[1..], error),
             _ => {
                 *error = true;
                 false
@@ -103,7 +103,7 @@ fn three(args: &[&[u8]], error: &mut bool) -> bool {
 fn four(args: &[&[u8]], error: &mut bool) -> bool {
     match args[0] {
         b"!" => {
-            !three(args.slice_from(1), error)
+            !three(&args[1..], error)
         }
         _ => {
             *error = true;
@@ -127,7 +127,7 @@ fn integers(a: &[u8], b: &[u8], cond: IntegerCondition) -> bool {
         _ => return false,
     };
     let (a, b): (i64, i64) = match (a.parse(), b.parse()) {
-        (Some(a), Some(b)) => (a, b),
+        (Ok(a), Ok(b)) => (a, b),
         _ => return false,
     };
     match cond {
@@ -142,7 +142,7 @@ fn integers(a: &[u8], b: &[u8], cond: IntegerCondition) -> bool {
 
 fn isatty(fd: &[u8]) -> bool {
     use libc::{isatty};
-    from_utf8(fd).ok().and_then(|s| s.parse())
+    from_utf8(fd).ok().and_then(|s| s.parse().ok())
             .map(|i| unsafe { isatty(i) == 1 }).unwrap_or(false)
 }
 
@@ -157,7 +157,7 @@ fn dispatch(args: &mut &[&[u8]], error: &mut bool) -> bool {
         3 => dispatch_three(args, error),
         _ => dispatch_four(args, error)
     };
-    *args = (*args).slice_from(idx);
+    *args = &(*args)[idx..];
     val
 }
 
@@ -229,7 +229,7 @@ fn parse_expr_helper<'a>(hashmap: &HashMap<&'a [u8], Precedence>,
     });
     while !*error && args.len() > 0 && prec as usize >= min_prec as usize {
         let op = args[0];
-        *args = (*args).slice_from(1);
+        *args = &(*args)[1..];
         let mut rhs = dispatch(args, error);
         while args.len() > 0 {
             let subprec = *hashmap.get(&args[0]).unwrap_or_else(|| {
@@ -348,7 +348,7 @@ fn path(path: &[u8], cond: PathCondition) -> bool {
         }
     };
 
-    let path = CString::from_slice(path);
+    let path = CString::new(path).unwrap();
     let mut stat = unsafe { std::mem::zeroed() };
     if cond == PathCondition::SymLink {
         if unsafe { lstat(path.as_ptr(), &mut stat) } == 0 {
@@ -382,9 +382,9 @@ fn path(path: &[u8], cond: PathCondition) -> bool {
 
 #[cfg(windows)]
 fn path(path: &[u8], cond: PathCondition) -> bool {
-    use std::io::{TypeFile, TypeDirectory, TypeBlockSpecial, TypeNamedPipe};
-    use std::io::fs::{stat};
-    use std::path::{Path};
+    use std::old_io::{TypeFile, TypeDirectory, TypeBlockSpecial, TypeNamedPipe};
+    use std::old_io::fs::{stat};
+    use std::old_path::{Path};
 
     let path = match Path::new_opt(path) {
         Some(p) => p,

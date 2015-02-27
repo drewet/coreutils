@@ -1,5 +1,5 @@
 #![crate_name = "tr"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -15,9 +15,9 @@ extern crate getopts;
 
 use getopts::OptGroup;
 use std::char::from_u32;
-use std::collections::{BitvSet, VecMap};
-use std::io::{BufferedReader, print};
-use std::io::stdio::{stdin_raw, stdout};
+use std::collections::{BitSet, VecMap};
+use std::old_io::{BufferedReader, print};
+use std::old_io::stdio::{stdin_raw, stdout};
 use std::iter::FromIterator;
 use std::vec::Vec;
 
@@ -89,7 +89,7 @@ fn expand_set(s: &str) -> Vec<char> {
 }
 
 fn delete(set: Vec<char>, complement: bool) {
-    let mut bset = BitvSet::new();
+    let mut bset = BitSet::new();
     let mut out = stdout();
 
     for &c in set.iter() {
@@ -161,7 +161,7 @@ fn usage(opts: &[OptGroup]) {
     print(getopts::usage("Translate or delete characters.", opts).as_slice());
 }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let opts = [
         getopts::optflag("c", "complement", "use the complement of SET1"),
         getopts::optflag("C", "", "same as -c"),

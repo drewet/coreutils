@@ -1,5 +1,5 @@
 #![crate_name = "hashsum"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -18,11 +18,11 @@ extern crate crypto;
 extern crate getopts;
 
 use std::ascii::AsciiExt;
-use std::io::fs::File;
-use std::io::stdio::stdin_raw;
-use std::io::BufferedReader;
-use std::io::IoError;
-use std::io::EndOfFile;
+use std::old_io::fs::File;
+use std::old_io::stdio::stdin_raw;
+use std::old_io::BufferedReader;
+use std::old_io::IoError;
+use std::old_io::EndOfFile;
 use regex::Regex;
 use crypto::digest::Digest;
 use crypto::md5::Md5;
@@ -72,7 +72,7 @@ fn detect_algo(program: &str, matches: &getopts::Matches) -> (&'static str, Box<
         "sha512sum" => ("SHA512", Box::new(Sha512::new()) as Box<Digest>),
         _ => {
             {
-                let mut set_or_crash = |&mut: n, val| -> () {
+                let mut set_or_crash = |n, val| -> () {
                     if alg.is_some() { crash!(1, "You cannot combine multiple hash algorithms!") };
                     name = n;
                     alg = Some(val);
@@ -90,7 +90,7 @@ fn detect_algo(program: &str, matches: &getopts::Matches) -> (&'static str, Box<
     }
 }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = args[0].clone();
     let binary = Path::new(program.as_slice());
     let binary_name = binary.filename_str().unwrap();
@@ -168,7 +168,7 @@ fn usage(program: &str, binary_name: &str, opts: &[getopts::OptGroup]) {
     pipe_print!("{}", getopts::usage("Compute and check message digests.", opts));
 }
 
-fn hashsum(algoname: &str, mut digest: Box<Digest>, files: Vec<String>, binary: bool, check: bool, tag: bool, status: bool, quiet: bool, strict: bool, warn: bool) -> Result<(), isize> {
+fn hashsum(algoname: &str, mut digest: Box<Digest>, files: Vec<String>, binary: bool, check: bool, tag: bool, status: bool, quiet: bool, strict: bool, warn: bool) -> Result<(), i32> {
     let mut bad_format = 0;
     let mut failed = 0;
     let binary_marker = if binary {
@@ -302,7 +302,7 @@ fn digest_reader(digest: &mut Box<Digest>, reader: &mut Reader, binary: bool) ->
                     digest.input(vec.as_slice());
                     vec.clear();
                 } else {
-                    digest.input(buffer.slice(0, nread));
+                    digest.input(&buffer[..nread]);
                 }
             },
             Err(e) => match e.kind {

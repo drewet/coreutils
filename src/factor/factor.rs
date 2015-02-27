@@ -1,5 +1,5 @@
 #![crate_name = "factor"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, rustc_private)]
 
 /*
 * This file is part of the uutils coreutils package.
@@ -14,8 +14,8 @@ extern crate getopts;
 extern crate libc;
 
 use std::vec::Vec;
-use std::io::BufferedReader;
-use std::io::stdio::stdin_raw;
+use std::old_io::BufferedReader;
+use std::old_io::stdio::stdin_raw;
 
 #[path="../common/util.rs"]
 #[macro_use]
@@ -58,13 +58,13 @@ fn print_factors(num: u64) {
 
 fn print_factors_str(num_str: &str) {
     let num = match num_str.parse::<u64>() {
-        Some(x) => x,
-        None => { crash!(1, "{} not a number", num_str); }
+        Ok(x) => x,
+        Err(e)=> { crash!(1, "{} not a number: {}", num_str, e); }
     };
     print_factors(num);
 }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = args[0].as_slice();
     let opts = [
         getopts::optflag("h", "help", "show this help message"),

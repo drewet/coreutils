@@ -1,5 +1,5 @@
 #![crate_name = "split"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -13,7 +13,7 @@
 extern crate getopts;
 extern crate libc;
 
-use std::io;
+use std::old_io as io;
 use std::num::Int;
 use std::char;
 
@@ -24,7 +24,7 @@ mod util;
 static NAME: &'static str = "split";
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let opts = [
         getopts::optopt("a", "suffix-length", "use suffixes of length N (default 2)", "N"),
         getopts::optopt("b", "bytes", "put SIZE bytes per output file", "SIZE"),
@@ -72,8 +72,8 @@ pub fn uumain(args: Vec<String>) -> isize {
 
     settings.suffix_length = match matches.opt_str("a") {
         Some(n) => match n.as_slice().parse() {
-            Some(m) => m,
-            None => crash!(1, "cannot parse num")
+            Ok(m) => m,
+            Err(e) => crash!(1, "cannot parse num: {}", e)
         },
         None => 2
     };
@@ -136,8 +136,8 @@ struct LineSplitter {
 impl LineSplitter {
     fn new(settings: &Settings) -> Box<Splitter> {
         let n = match settings.strategy_param.as_slice().parse() {
-            Some(a) => a,
-            _ => crash!(1, "invalid number of lines")
+            Ok(a) => a,
+            Err(e) => crash!(1, "invalid number of lines: {}", e)
         };
         Box::new(LineSplitter {
             saved_lines_to_write: n,
@@ -170,21 +170,21 @@ impl ByteSplitter {
         let mut strategy_param : Vec<char> = settings.strategy_param.chars().collect();
         let suffix = strategy_param.pop().unwrap();
         let multiplier = match suffix {
-            '0'...'9' => 1us,
-            'b' => 512us,
-            'k' => 1024us,
-            'm' => 1024us * 1024us,
+            '0'...'9' => 1usize,
+            'b' => 512usize,
+            'k' => 1024usize,
+            'm' => 1024usize * 1024usize,
             _ => crash!(1, "invalid number of bytes")
         };
         let n = if suffix.is_alphabetic() {
             match strategy_param.as_slice().iter().map(|c| *c).collect::<String>().as_slice().parse::<usize>() {
-                Some(a) => a,
-                _ => crash!(1, "invalid number of bytes")
+                Ok(a) => a,
+                Err(e) => crash!(1, "invalid number of bytes: {}", e)
             }
         } else {
             match settings.strategy_param.as_slice().parse::<usize>() {
-                Some(a) => a,
-                _ => crash!(1, "invalid number of bytes")
+                Ok(a) => a,
+                Err(e) => crash!(1, "invalid number of bytes: {}", e)
             }
         };
         Box::new(ByteSplitter {
@@ -204,7 +204,7 @@ impl Splitter for ByteSplitter {
             self.bytes_to_write = self.saved_bytes_to_write;
             control.request_new_file = true;
             self.require_whole_line = false;
-            return line.as_slice().slice(0, 0).to_string();
+            return line.as_slice()[0..0].to_string();
         }
         self.bytes_to_write -= n;
         if n == 0 {
@@ -214,7 +214,7 @@ impl Splitter for ByteSplitter {
         if self.break_on_line_end && n == line.as_slice().chars().count() {
             self.require_whole_line = self.break_on_line_end;
         }
-        line.as_slice().slice(0, n).to_string()
+        line.as_slice()[..n].to_string()
     }
 }
 
@@ -243,12 +243,12 @@ fn num_prefix(i: usize, width: usize) -> String {
         let div = Int::pow(10 as usize, w);
         let r = n / div;
         n -= r * div;
-        c.push(char::from_digit(r, 10).unwrap());
+        c.push(char::from_digit(r as u32, 10).unwrap());
     }
     c
 }
 
-fn split(settings: &Settings) -> isize {
+fn split(settings: &Settings) -> i32 {
     let mut reader = io::BufferedReader::new(
         if settings.input.as_slice() == "-" {
             Box::new(io::stdio::stdin_raw()) as Box<Reader>
@@ -308,7 +308,7 @@ fn split(settings: &Settings) -> isize {
         let advance = consumed.as_slice().chars().count();
         let clone = control.current_line.clone();
         let sl = clone.as_slice();
-        control.current_line = sl.slice(advance, sl.chars().count()).to_string();
+        control.current_line = sl[advance..sl.chars().count()].to_string();
     }
     0
 }

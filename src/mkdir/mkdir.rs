@@ -1,5 +1,5 @@
 #![crate_name = "mkdir"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -13,8 +13,8 @@
 extern crate getopts;
 extern crate libc;
 
-use std::io::fs::{self, PathExtensions};
-use std::io::FilePermission;
+use std::old_io::fs::{self, PathExtensions};
+use std::old_io::FilePermission;
 use std::num::from_str_radix;
 
 #[path = "../common/util.rs"]
@@ -27,7 +27,7 @@ static VERSION: &'static str = "1.0.0";
 /**
  * Handles option parsing
  */
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
 
     let opts = [
         // Linux-specific options, not implemented
@@ -64,7 +64,7 @@ pub fn uumain(args: Vec<String>) -> isize {
     let mode_match = matches.opts_str(&["mode".to_string()]);
     let mode: FilePermission = if mode_match.is_some() {
         let m = mode_match.unwrap();
-        let res: Option<u32> = from_str_radix(m.as_slice(), 8);
+        let res: Option<u32> = from_str_radix(m.as_slice(), 8).ok();
         if res.is_some() {
             unsafe { std::mem::transmute(res.unwrap()) }
         } else {
@@ -94,7 +94,7 @@ fn print_help(opts: &[getopts::OptGroup]) {
 /**
  * Create the list of new directories
  */
-fn exec(dirs: Vec<String>, mk_parents: bool, mode: FilePermission, verbose: bool) -> Result<(), isize> {
+fn exec(dirs: Vec<String>, mk_parents: bool, mode: FilePermission, verbose: bool) -> Result<(), i32> {
     let mut result = Ok(());
 
     let mut parent_dirs = Vec::new();

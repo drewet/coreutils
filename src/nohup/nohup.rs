@@ -1,5 +1,5 @@
 #![crate_name = "nohup"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, os, old_path, rustc_private, std_misc)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -15,8 +15,8 @@ extern crate libc;
 
 use getopts::{optflag, getopts, usage};
 use std::ffi::CString;
-use std::io::stdio::{stdin_raw, stdout_raw, stderr_raw};
-use std::io::{File, Open, Read, Append, Write};
+use std::old_io::stdio::{stdin_raw, stdout_raw, stderr_raw};
+use std::old_io::{File, Open, Read, Append, Write};
 use std::os::unix::prelude::*;
 use libc::c_char;
 use libc::funcs::posix88::unistd::{dup2, execvp};
@@ -38,7 +38,7 @@ extern {
 #[cfg(any(target_os = "linux", target_os = "freebsd"))]
 unsafe fn _vprocmgr_detach_from_console(_: u32) -> *const libc::c_int { std::ptr::null() }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = &args[0];
 
     let options = [
@@ -69,10 +69,10 @@ pub fn uumain(args: Vec<String>) -> isize {
 
     if unsafe { _vprocmgr_detach_from_console(0) } != std::ptr::null() { crash!(2, "Cannot detach from console")};
 
-    let cstrs : Vec<CString> = opts.free.iter().map(|x| CString::from_slice(x.as_bytes())).collect();
+    let cstrs : Vec<CString> = opts.free.iter().map(|x| CString::new(x.as_bytes()).unwrap()).collect();
     let mut args : Vec<*const c_char> = cstrs.iter().map(|s| s.as_ptr()).collect();
     args.push(std::ptr::null());
-    unsafe { execvp(args[0], args.as_mut_ptr()) as isize }
+    unsafe { execvp(args[0], args.as_mut_ptr())}
 }
 
 fn replace_fds() {
@@ -88,7 +88,7 @@ fn replace_fds() {
             }
         };
         if unsafe { dup2(new_stdin.as_raw_fd(), 0) } != 0 {
-            crash!(2, "Cannot replace STDIN: {}", std::io::IoError::last_error())
+            crash!(2, "Cannot replace STDIN: {}", std::old_io::IoError::last_error())
         }
     }
 
@@ -97,13 +97,13 @@ fn replace_fds() {
         let fd = new_stdout.as_raw_fd();
 
         if unsafe { dup2(fd, 1) } != 1 {
-            crash!(2, "Cannot replace STDOUT: {}", std::io::IoError::last_error())
+            crash!(2, "Cannot replace STDOUT: {}", std::old_io::IoError::last_error())
         }
     }
 
     if replace_stderr {
         if unsafe { dup2(1, 2) } != 2 {
-            crash!(2, "Cannot replace STDERR: {}", std::io::IoError::last_error())
+            crash!(2, "Cannot replace STDERR: {}", std::old_io::IoError::last_error())
         }
     }
 }

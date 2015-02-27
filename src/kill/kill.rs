@@ -1,5 +1,5 @@
 #![crate_name = "kill"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, rustc_private, unicode)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -18,7 +18,7 @@ extern crate serialize;
 
 #[macro_use] extern crate log;
 
-use std::io::process::Process;
+use std::old_io::process::Process;
 
 use getopts::{
     getopts,
@@ -40,8 +40,8 @@ mod signals;
 static NAME: &'static str = "kill";
 static VERSION:  &'static str = "0.0.1";
 
-static EXIT_OK:  isize = 0;
-static EXIT_ERR: isize = 1;
+static EXIT_OK:  i32 = 0;
+static EXIT_ERR: i32 = 1;
 
 pub enum Mode {
     Kill,
@@ -53,7 +53,7 @@ pub enum Mode {
 
 impl Copy for Mode {}
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let opts = [
         optflag("h", "help", "display this help and exit"),
         optflag("V", "version", "output version information and exit"),
@@ -107,15 +107,15 @@ fn handle_obsolete(mut args: Vec<String>) -> (Vec<String>, Option<String>) {
         // this is safe because slice is valid when it is referenced
         let slice: &str = unsafe { std::mem::transmute(args[i].as_slice()) };
         if slice.char_at(0) == '-' && slice.len() > 1 && slice.char_at(1).is_digit(10) {
-            let val = slice.slice_from(1);
+            let val = &slice[1..];
             match val.parse() {
-                Some(num) => {
+                Ok(num) => {
                     if signals::is_signal(num) {
                         args.remove(i);
                         return (args, Some(val.to_string()));
                     }
                 }
-                None => break  /* getopts will error out for us */
+                Err(_)=> break  /* getopts will error out for us */
             }
         }
         i += 1;
@@ -185,7 +185,7 @@ fn help(progname: &str, usage: &str) {
     println!("{}", get_help_text(progname, usage));
 }
 
-fn kill(signalname: &str, pids: std::vec::Vec<String>) -> isize {
+fn kill(signalname: &str, pids: std::vec::Vec<String>) -> i32 {
     let mut status = 0;
     let optional_signal_value = signals::signal_by_name_or_value(signalname);
     let signal_value = match optional_signal_value {
@@ -194,7 +194,7 @@ fn kill(signalname: &str, pids: std::vec::Vec<String>) -> isize {
     };
     for pid in pids.iter() {
         match pid.as_slice().parse() {
-            Some(x) => {
+            Ok(x) => {
                 let result = Process::kill(x, signal_value as isize);
                 match result {
                     Ok(_) => (),
@@ -204,7 +204,7 @@ fn kill(signalname: &str, pids: std::vec::Vec<String>) -> isize {
                     }
                 };
             },
-            None => crash!(EXIT_ERR, "failed to parse argument {}", pid)
+            Err(e) => crash!(EXIT_ERR, "failed to parse argument {}: {}", pid, e)
         };
     }
     status

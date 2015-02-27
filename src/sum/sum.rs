@@ -1,5 +1,5 @@
 #![crate_name = "sum"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
 * This file is part of the uutils coreutils package.
@@ -13,8 +13,8 @@
 extern crate getopts;
 extern crate libc;
 
-use std::io::{File, IoResult, print};
-use std::io::stdio::{stdin_raw};
+use std::old_io::{File, IoResult, print};
+use std::old_io::stdio::{stdin_raw};
 
 #[path="../common/util.rs"]
 #[macro_use]
@@ -31,7 +31,7 @@ fn bsd_sum(mut reader: Box<Reader>) -> (usize, u16) {
         match reader.read(&mut buf) {
             Ok(n) if n != 0 => {
                 blocks_read += 1;
-                for &byte in buf.slice_to(n).iter() {
+                for &byte in buf[..n].iter() {
                     checksum = (checksum >> 1) + ((checksum & 1) << 15);
                     checksum += byte as u16;
                 }
@@ -52,7 +52,7 @@ fn sysv_sum(mut reader: Box<Reader>) -> (usize, u16) {
         match reader.read(&mut buf) {
             Ok(n) if n != 0 => {
                 blocks_read += 1;
-                for &byte in buf.slice_to(n).iter() {
+                for &byte in buf[..n].iter() {
                     ret += byte as u32;
                 }
             },
@@ -76,7 +76,7 @@ fn open(name: &str) -> IoResult<Box<Reader>> {
     }
 }
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = args[0].as_slice();
     let opts = [
         getopts::optflag("r", "", "use the BSD compatible algorithm (default)"),

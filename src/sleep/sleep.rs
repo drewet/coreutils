@@ -1,5 +1,5 @@
 #![crate_name = "sleep"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, rustc_private, std_misc)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -14,7 +14,7 @@ extern crate getopts;
 extern crate libc;
 
 use std::f64;
-use std::io::{print, timer};
+use std::old_io::{print, timer};
 use std::time::duration::{self, Duration};
 
 #[path = "../common/util.rs"]
@@ -26,7 +26,7 @@ mod time;
 
 static NAME: &'static str = "sleep";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = args[0].clone();
 
     let opts = [

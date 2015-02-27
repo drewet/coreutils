@@ -1,5 +1,5 @@
 #![crate_name = "tac"]
-#![allow(unstable)]
+#![feature(collections, core, old_io, old_path, rustc_private)]
 
 /*
  * This file is part of the uutils coreutils package.
@@ -13,7 +13,7 @@
 extern crate getopts;
 extern crate libc;
 
-use std::io;
+use std::old_io as io;
 
 #[path = "../common/util.rs"]
 #[macro_use]
@@ -22,7 +22,7 @@ mod util;
 static NAME: &'static str = "tac";
 static VERSION: &'static str = "1.0.0";
 
-pub fn uumain(args: Vec<String>) -> isize {
+pub fn uumain(args: Vec<String>) -> i32 {
     let program = args[0].clone();
 
     let opts = [

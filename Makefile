@@ -5,11 +5,13 @@ ENABLE_STRIP   ?= n
 # Binaries
 RUSTC          ?= rustc
 CARGO          ?= cargo
+CC             ?= gcc
 RM             := rm
 
 # Install directories
 PREFIX         ?= /usr/local
 BINDIR         ?= /bin
+LIBDIR         ?= /lib
 
 # This won't support any directory with spaces in its name, but you can just
 # make a symlink without spaces that points to the directory.
@@ -62,9 +64,11 @@ PROGS       := \
   mv \
   nl \
   nproc \
+  od \
   paste \
   printenv \
   pwd \
+  readlink \
   realpath \
   relpath \
   rm \
@@ -104,6 +108,7 @@ UNIX_PROGS := \
   mkfifo \
   nice \
   nohup \
+  stdbuf \
   timeout \
   tty \
   uname \
@@ -134,6 +139,22 @@ INSTALL     ?= $(EXES)
 
 INSTALLEES  := \
   $(filter $(INSTALL),$(filter-out $(DONT_INSTALL),$(EXES) uutils))
+
+# Shared library extension
+SYSTEM := $(shell uname)
+DYLIB_EXT := 
+ifeq ($(SYSTEM),Linux)
+	DYLIB_EXT    := so
+endif
+ifeq ($(SYSTEM),Darwin)
+	DYLIB_EXT    := dylib
+endif
+
+# Libaries to install
+LIBS :=
+ifneq (,$(findstring stdbuf, $(INSTALLEES)))
+LIBS += libstdbuf.$(DYLIB_EXT)
+endif
 
 # Programs with usable tests
 TEST_PROGS  := \
@@ -181,7 +202,7 @@ define CRATE_BUILD
 -include $(BUILDDIR)/$(1).d
 
 $(BUILDDIR)/$($(1)_RLIB): $(SRCDIR)/$(1)/$(1).rs | $(BUILDDIR) deps
-	$(RUSTC) $(RUSTCLIBFLAGS) --extern time=$(BUILDDIR)/libtime.rlib --extern regex=$(BUILDDIR)/libregex.rlib --crate-type rlib --emit link,dep-info $$< --out-dir $(BUILDDIR)
+	$(RUSTC) $(RUSTCLIBFLAGS) --extern libc=$(BUILDDIR)/liblibc.rlib --extern time=$(BUILDDIR)/libtime.rlib --extern rand=$(BUILDDIR)/librand.rlib --extern regex=$(BUILDDIR)/libregex.rlib --extern serialize=$(BUILDDIR)/librustc-serialize.rlib --crate-type rlib --emit link,dep-info $$< --out-dir $(BUILDDIR)
 endef
 
 # Aliases build rule
@@ -223,12 +244,24 @@ $(BUILDDIR)/uutils: $(SRCDIR)/uutils/uutils.rs $(BUILDDIR)/mkuutils $(RLIB_PATHS
 	$(BUILDDIR)/mkuutils $(BUILDDIR)/gen/uutils.rs $(EXES)
 	$(RUSTC) $(RUSTCBINFLAGS) --extern test=$(BUILDDIR)/libtest.rlib --emit link,dep-info $(BUILDDIR)/gen/uutils.rs --out-dir $(BUILDDIR)
 	$(if $(ENABLE_STRIP),strip $@)
+	
+# Library for stdbuf
+$(BUILDDIR)/libstdbuf.$(DYLIB_EXT): $(SRCDIR)/stdbuf/libstdbuf.rs $(SRCDIR)/stdbuf/libstdbuf.c $(SRCDIR)/stdbuf/libstdbuf.h | $(BUILDDIR)
+	cd $(SRCDIR)/stdbuf && \
+	$(RUSTC) libstdbuf.rs && \
+	$(CC) -c -Wall -Werror -fpic libstdbuf.c -L. -llibstdbuf.a && \
+	$(CC) -shared -o libstdbuf.$(DYLIB_EXT) -Wl,--whole-archive liblibstdbuf.a -Wl,--no-whole-archive libstdbuf.o -lpthread && \
+	mv *.$(DYLIB_EXT) $(BUILDDIR) && $(RM) *.o && $(RM) *.a
+	
+$(BUILDDIR)/stdbuf: $(BUILDDIR)/libstdbuf.$(DYLIB_EXT)
 
 # Dependencies
 $(BUILDDIR)/.rust-crypto: | $(BUILDDIR)
 	cd $(BASEDIR)/deps/rust-crypto && $(CARGO) build --release
-	cp -r $(BASEDIR)/deps/rust-crypto/target/release/deps/librustc-serialize*.rlib $(BUILDDIR)
+	cp -r $(BASEDIR)/deps/rust-crypto/target/release/deps/librand*.rlib $(BUILDDIR)/librand.rlib
+	cp -r $(BASEDIR)/deps/rust-crypto/target/release/deps/librustc-serialize*.rlib $(BUILDDIR)/librustc-serialize.rlib
 	cp -r $(BASEDIR)/deps/rust-crypto/target/release/deps/libtime*.rlib $(BUILDDIR)/libtime.rlib
+	cp -r $(BASEDIR)/deps/rust-crypto/target/release/deps/liblibc*.rlib $(BUILDDIR)/liblibc.rlib
 	cp -r $(BASEDIR)/deps/rust-crypto/target/release/libcrypto*.rlib $(BUILDDIR)/libcrypto.rlib
 	@touch $@
 
@@ -276,6 +309,10 @@ install: $(addprefix $(BUILDDIR)/,$(INSTALLEES))
 	for prog in $(INSTALLEES); do \
 		install $(BUILDDIR)/$$prog $(DESTDIR)$(PREFIX)$(BINDIR)/$(PROG_PREFIX)$$prog; \
 	done
+	mkdir -p $(DESTDIR)$(PREFIX)$(LIBDIR)
+	for lib in $(LIBS); do \
+		install $(BUILDDIR)/$$lib $(DESTDIR)$(PREFIX)$(LIBDIR)/$$lib; \
+	done
 
 # TODO: figure out if there is way for prefixes to work with the symlinks
 install-multicall: $(BUILDDIR)/uutils
@@ -285,12 +322,18 @@ install-multicall: $(BUILDDIR)/uutils
 	for prog in $(INSTALLEES); do \
 		ln -s $(PROG_PREFIX)uutils $$prog; \
 	done
+	mkdir -p $(DESTDIR)$(PREFIX)$(LIBDIR)
+	for lib in $(LIBS); do \
+		install $(BUILDDIR)/$$lib $(DESTDIR)$(PREFIX)$(LIBDIR)/$$lib; \
+	done
 
 uninstall:
 	rm -f $(addprefix $(DESTDIR)$(PREFIX)$(BINDIR)/$(PROG_PREFIX),$(PROGS))
+	rm -f $(addprefix $(DESTDIR)$(PREFIX)$(LIBDIR)/,$(LIBS))
 
 uninstall-multicall:
 	rm -f $(addprefix $(DESTDIR)$(PREFIX)$(BINDIR)/,$(PROGS) $(PROG_PREFIX)uutils)
+	rm -f $(addprefix $(DESTDIR)$(PREFIX)$(LIBDIR)/,$(LIBS))
 
 # Test under the busybox testsuite
 $(BUILDDIR)/busybox: $(BUILDDIR)/uutils
